@@ -1,7 +1,7 @@
 'use server';
 
 import { GoogleGenAI } from "@google/genai";
-// eg. If ETH price goes below 5500, swap 0.001 ETH to UNI, then transfer it to 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (自己搞个备用钱包测)
+// eg. If ETH price goes below 5500, swap 0.001 ETH to UNI, then transfer it to 0xa91411c277607eE3C983064C69feFB947dc81Ba5 (自己搞个备用钱包测)
 export async function analyzeIntent(intent: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
