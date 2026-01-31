@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: defiflow-frontend
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: defiflow-frontend
+  template:
+    metadata:
+      labels:
+        app: defiflow-frontend
+    spec:
+      containers:
+        - name: nextjs
+          # 这是一个占位符，GitHub Actions 会修改它
+          image: ghcr.io/blackdogTT/defiflow-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: HOSTNAME
+              value: "0.0.0.0"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: defiflow-frontend-svc
+  namespace: default
+spec:
+  selector:
+    app: defiflow-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
