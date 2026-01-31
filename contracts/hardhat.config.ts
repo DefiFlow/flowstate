@@ -9,7 +9,9 @@ const config: HardhatUserConfig = {
   solidity: "0.8.20",
   networks: {
     hardhat: {
-      // 运行 npx hardhat test 时默认使用此网络，无需额外配置
+      forking: {
+        url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545",

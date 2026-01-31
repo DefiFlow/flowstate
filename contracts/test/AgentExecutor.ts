@@ -1,195 +1,114 @@
-
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { Signer } from "ethers";
+
+// A basic ERC20 interface for interacting with tokens on the forked network
+const erc20Abi = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function decimals() view returns (uint8)"
+];
 
 describe("AgentExecutor", function () {
     let agentExecutor: any;
-    let owner: Signer, user: Signer, recipient: Signer;
-    let ownerAddress: string, userAddress: string, recipientAddress: string;
+    let user: Signer, recipient: Signer;
+    let userAddress: string, recipientAddress: string;
 
-    let uniswapRouterMock: any;
-    let daiToken: any;
-    let wethToken: any;
-    let priceFeedMock: any;
+    // Sepolia addresses
+    const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
 
-    let ethAmount: any;
-    let daiAmountMin: any;
-    const description = "Swap ETH for DAI and send to Bob";
+    let uniToken: any;
+    let isFork = false;
+
+    before(async function() {
+        // This hook checks if the test is running on a forked network where the UNI contract exists.
+        // If not, it skips the tests and logs a helpful message.
+        try {
+            const code = await ethers.provider.getCode(UNI_ADDRESS);
+            if (code !== '0x') {
+                isFork = true;
+            } else {
+                console.log("\n    SKIPPING: AgentExecutor tests. Not running on a Sepolia fork or UNI token not found.");
+                console.log("    Please ensure your hardhat.config.ts is configured for Sepolia forking.");
+                console.log("    e.g., forking: { url: 'https://sepolia.infura.io/v3/YOUR_INFURA_KEY' }\n");
+            }
+        } catch (e) {
+            isFork = false;
+            console.log("\n    SKIPPING: AgentExecutor tests. Could not check for UNI token due to a network issue.");
+            console.log("    Please ensure your hardhat.config.ts is configured for Sepolia forking.\n");
+        }
+    });
 
     beforeEach(async function () {
-        [owner, user, recipient] = await ethers.getSigners();
-        ownerAddress = await owner.getAddress();
+        // If not on a fork, skip the individual test setup.
+        if (!isFork) {
+            this.skip();
+        }
+        
+        [user, recipient] = (await ethers.getSigners()).slice(1);
         userAddress = await user.getAddress();
         recipientAddress = await recipient.getAddress();
 
-        ethAmount = ethers.parseEther("1");
-        daiAmountMin = ethers.parseEther("2990");
-
-        // Deploy mock ERC20 tokens (DAI and WETH)
-        const erc20MockFactory = await ethers.getContractFactory("ERC20Mock");
-        daiToken = await erc20MockFactory.deploy("Mock DAI", "DAI", 18);
-        await daiToken.waitForDeployment();
-        wethToken = await erc20MockFactory.deploy("Wrapped Ether", "WETH", 18);
-        await wethToken.waitForDeployment();
-
-        // Deploy a mock Uniswap Router
-        const uniswapRouterMockFactory = await ethers.getContractFactory("UniswapRouterMock");
-        uniswapRouterMock = await uniswapRouterMockFactory.deploy();
-        await uniswapRouterMock.waitForDeployment();
-
-        // Deploy a mock Chainlink Price Feed
-        const priceFeedMockFactory = await ethers.getContractFactory("PriceFeedMock");
-        priceFeedMock = await priceFeedMockFactory.deploy(8, 3000 * 10**8); // 8 decimals, initial price 3000
-        await priceFeedMock.waitForDeployment();
-        
         // Deploy AgentExecutor
         const agentExecutorFactory = await ethers.getContractFactory("AgentExecutor");
         agentExecutor = await agentExecutorFactory.deploy();
         await agentExecutor.waitForDeployment();
-
-        // Mint some DAI for the mock router to simulate liquidity
-        await daiToken.mint(await uniswapRouterMock.getAddress(), ethers.parseEther("10000"));
+        
+        // Get a contract instance for the UNI token on Sepolia
+        uniToken = new ethers.Contract(UNI_ADDRESS, erc20Abi, ethers.provider);
     });
 
     describe("executeSwapAndTransfer", function () {
+        it("should execute a swap from ETH to UNI and transfer to the recipient", async function () {
+            const ethAmount = ethers.parseEther("1");
+            const amountOutMin = 0; // We don't require a minimum output for this test
+            const description = "Swap 1 ETH for UNI for hackathon demo";
 
-        it("should execute swap and transfer when price condition is met (greater than)", async function () {
-            const deadline = (await time.latest()) + 60;
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
+            // Check recipient's UNI balance before the transaction
+            const balanceBefore = await uniToken.balanceOf(recipientAddress);
+
+            // Execute the transaction from the 'user' account
+            const tx = await agentExecutor.connect(user).executeSwapAndTransfer(
+                amountOutMin,
+                UNI_ADDRESS,
+                description,
+                recipientAddress,
+                { value: ethAmount }
+            );
             
-            await priceFeedMock.setPrice(3100 * 10**8); // Set price > target
-
-            const tx = agentExecutor.connect(user).executeSwapAndTransfer(
-                await uniswapRouterMock.getAddress(),
-                daiAmountMin,
-                path,
-                deadline,
-                description,
-                await priceFeedMock.getAddress(),
-                3000 * 10**8, // targetPrice
-                true, // isGreaterThan
-                recipientAddress,
-                { value: ethAmount }
-            );
-
-            await expect(tx).to.emit(agentExecutor, "AgentActionExecuted");
-
-
-            const recipientDaiBalance = await daiToken.balanceOf(recipientAddress);
-            // In our mock, 1 ETH = 3000 DAI
-            expect(recipientDaiBalance).to.equal(ethers.parseEther("3000"));
-        });
-
-        it("should execute swap and transfer when price condition is met (less than)", async function () {
-            const deadline = (await time.latest()) + 60;
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
+            // Wait for the transaction to be mined to ensure state changes are visible
+            const receipt = await tx.wait();
             
-            await priceFeedMock.setPrice(2900 * 10**8); // Set price < target
+            // To check the event timestamp, we need to get the block
+            const block = await ethers.provider.getBlock(receipt.blockNumber);
+            const timestamp = block!.timestamp;
+            
+            // Verify that the event was emitted with the correct arguments
+            await expect(tx)
+                .to.emit(agentExecutor, "AgentActionExecuted")
+                .withArgs(description, timestamp);
 
-            const tx = agentExecutor.connect(user).executeSwapAndTransfer(
-                await uniswapRouterMock.getAddress(),
-                daiAmountMin,
-                path,
-                deadline,
-                description,
-                await priceFeedMock.getAddress(),
-                3000 * 10**8, // targetPrice
-                false, // isGreaterThan
-                recipientAddress,
-                { value: ethAmount }
-            );
+            // Check recipient's UNI balance after the transaction
+            const balanceAfter = await uniToken.balanceOf(recipientAddress);
+            
+            // The balance should have increased as a result of the swap
+            expect(balanceAfter).to.be.gt(balanceBefore);
 
-            await expect(tx).to.emit(agentExecutor, "AgentActionExecuted");
-            const recipientDaiBalance = await daiToken.balanceOf(recipientAddress);
-            expect(recipientDaiBalance).to.equal(ethers.parseEther("3000"));
+            // Optional: log the amount of UNI received for verification
+            const uniDecimals = await uniToken.decimals();
+            console.log(`      ✓ Recipient received ${ethers.formatUnits(balanceAfter - balanceBefore, uniDecimals)} UNI`);
         });
 
-        it("should revert if price condition is not met (greater than)", async function () {
-            const deadline = (await time.latest()) + 60;
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
-
-            await priceFeedMock.setPrice(2900 * 10**8); // Price is lower than target
-
+        it("should revert if no ETH is sent with the transaction", async function () {
+            // The Uniswap V3 router should revert transactions with no input amount.
             await expect(
                 agentExecutor.connect(user).executeSwapAndTransfer(
-                    await uniswapRouterMock.getAddress(),
-                    daiAmountMin,
-                    path,
-                    deadline,
-                    description,
-                    await priceFeedMock.getAddress(),
-                    3000 * 10**8,
-                    true, // isGreaterThan
+                    0,
+                    UNI_ADDRESS,
+                    "Attempting zero-value swap",
                     recipientAddress,
-                    { value: ethAmount }
+                    { value: 0 }
                 )
-            ).to.be.revertedWith("Chainlink: Price too low");
-        });
-
-        it("should revert if price condition is not met (less than)", async function () {
-            const deadline = (await time.latest()) + 60;
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
-
-            await priceFeedMock.setPrice(3100 * 10**8); // Price is higher than target
-
-            await expect(
-                agentExecutor.connect(user).executeSwapAndTransfer(
-                    await uniswapRouterMock.getAddress(),
-                    daiAmountMin,
-                    path,
-                    deadline,
-                    description,
-                    await priceFeedMock.getAddress(),
-                    3000 * 10**8,
-                    false, // isGreaterThan
-                    recipientAddress,
-                    { value: ethAmount }
-                )
-            ).to.be.revertedWith("Chainlink: Price too high");
-        });
-
-        it("should skip price check if priceFeedAddress is address(0)", async function () {
-            const deadline = (await time.latest()) + 60;
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
-
-            const tx = agentExecutor.connect(user).executeSwapAndTransfer(
-                await uniswapRouterMock.getAddress(),
-                daiAmountMin,
-                path,
-                deadline,
-                description,
-                ethers.ZeroAddress, // No price check
-                0,
-                false,
-                recipientAddress,
-                { value: ethAmount }
-            );
-
-            await expect(tx).to.emit(agentExecutor, "AgentActionExecuted");
-            const recipientDaiBalance = await daiToken.balanceOf(recipientAddress);
-            expect(recipientDaiBalance).to.equal(ethers.parseEther("3000"));
-        });
-
-        it("should revert if deadline is exceeded", async function () {
-            const deadline = (await time.latest()) - 60; // Deadline is in the past
-            const path = [await wethToken.getAddress(), await daiToken.getAddress()];
-
-            await expect(
-                agentExecutor.connect(user).executeSwapAndTransfer(
-                    await uniswapRouterMock.getAddress(),
-                    daiAmountMin,
-                    path,
-                    deadline,
-                    description,
-                    await priceFeedMock.getAddress(),
-                    3000 * 10**8,
-                    true,
-                    recipientAddress,
-                    { value: ethAmount }
-                )
-            ).to.be.revertedWith("UniswapRouterMock: DEADLINE_EXCEEDED");
+            ).to.be.reverted; // The exact revert message comes from the router, so we just check for revert.
         });
     });
 });

@@ -1,87 +1,52 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+interface ISwapRouter {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
 
-interface IUniswapRouter {
-    function swapExactETHForTokens(
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external payable returns (uint[] memory amounts);
-}
-
-interface IERC20 {
-    function transfer(address to, uint256 amount) external returns (bool);
-
-    function balanceOf(address account) external view returns (uint256);
+    function exactInputSingle(
+        ExactInputSingleParams calldata params
+    ) external payable returns (uint256 amountOut);
 }
 
 contract AgentExecutor {
-    event AgentActionExecuted(
-        address indexed user,
-        string actionType,
-        string description,
-        uint256 timestamp
-    );
+    event AgentActionExecuted(string description, uint256 timestamp);
 
-    // 核心执行函数
+    // Sepolia SwapRouter02
+    address public constant ROUTER_V3 =
+        0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
+    // Sepolia WETH
+    address public constant WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+
     function executeSwapAndTransfer(
-        address routerAddress,
         uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline,
+        address tokenOut,
         string calldata aiDescription,
-        // --- Chainlink 相关参数 ---
-        address priceFeedAddress,
-        int256 targetPrice, // 前端传过来处理好精度的价格 (比如 3000 * 10^8)
-        bool isGreaterThan, // true = 大于触发(追涨), false = 小于触发(止损)
-        // ------------------------
-        address finalRecipient // 最终接收代币的人 (Bob)
+        address finalRecipient
     ) external payable {
-        // 1. Chainlink 价格检查 (On-chain Verification)
-        if (priceFeedAddress != address(0)) {
-            // 允许传 0 地址跳过检查(方便调试)
-            AggregatorV3Interface priceFeed = AggregatorV3Interface(
-                priceFeedAddress
-            );
-            (, int price, , , ) = priceFeed.latestRoundData();
+        // 组装参数 (注意：没有 deadline 字段了)
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+            .ExactInputSingleParams({
+                tokenIn: WETH,
+                tokenOut: tokenOut,
+                fee: 3000, // 注意：如果 LINK 池子没有 0.3% 的费率，这里也可能报错。建议换 UNI 试
+                recipient: finalRecipient,
+                amountIn: msg.value,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            });
 
-            if (isGreaterThan) {
-                require(price >= targetPrice, "Chainlink: Price too low");
-            } else {
-                require(price <= targetPrice, "Chainlink: Price too high");
-            }
-        }
+        ISwapRouter(ROUTER_V3).exactInputSingle{value: msg.value}(params);
 
-        // 2. 调用 Uniswap (资金先进合约)
-        // 注意：这里 to 填 address(this)
-        uint[] memory amounts = IUniswapRouter(routerAddress)
-            .swapExactETHForTokens{value: msg.value}(
-            amountOutMin,
-            path,
-            address(this),
-            deadline
-        );
-
-        // 3. 转账给最终接收人
-        // 获取刚才换到的代币地址 (路径的最后一个)
-        address tokenAddress = path[path.length - 1];
-        uint256 swappedAmount = amounts[amounts.length - 1];
-
-        require(swappedAmount > 0, "Swap failed: No tokens received");
-
-        // 转给 Bob
-        IERC20(tokenAddress).transfer(finalRecipient, swappedAmount);
-
-        // 4. 留下证据 (For The Graph / Etherscan)
-        emit AgentActionExecuted(
-            msg.sender,
-            "SWAP_AND_TRANSFER",
-            aiDescription,
-            block.timestamp
-        );
+        emit AgentActionExecuted(aiDescription, block.timestamp);
     }
 
     receive() external payable {}

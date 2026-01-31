@@ -11,7 +11,14 @@ import {
   addEdge,
 } from '@xyflow/react';
 
-export type FlowNode = Node;
+export type NodeData = {
+  label: string;
+  value?: number;
+  percentage?: number;
+  address?: string;
+};
+
+export type FlowNode = Node<NodeData>;
 export type FlowEdge = Edge;
 
 interface FlowState {
@@ -41,6 +48,7 @@ interface FlowState {
   setTxHash: (hash: string | null) => void;
   setShowSuccessModal: (show: boolean) => void;
   setShowAIModal: (show: boolean) => void;
+  updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
   resetFlow: () => void;
 }
 
@@ -77,5 +85,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setTxHash: (txHash) => set({ txHash }),
   setShowSuccessModal: (showSuccessModal) => set({ showSuccessModal }),
   setShowAIModal: (showAIModal) => set({ showAIModal }),
+  updateNodeData: (nodeId, data) => {
+    set({
+      nodes: get().nodes.map((node) => {
+        if (node.id === nodeId) {
+          // creating a new object for state update
+          return { ...node, data: { ...node.data, ...data } };
+        }
+        return node;
+      }),
+    });
+   },
   resetFlow: () => set({ nodes: [], edges: [] }),
 }));

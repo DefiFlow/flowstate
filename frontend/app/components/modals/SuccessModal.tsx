@@ -28,7 +28,7 @@ export const SuccessModal = () => {
   const actionNode = nodes.find(n => n.data.type === 'action');
   const amount = (actionNode?.data.amount as string) || '0.0001';
   const fromToken = (actionNode?.data.fromToken as string) || 'ETH';
-  const toToken = (actionNode?.data.toToken as string) || 'WBTC';
+  const toToken = (actionNode?.data.toToken as string) || 'UNI';
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">

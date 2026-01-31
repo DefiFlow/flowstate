@@ -59,6 +59,21 @@ export const Sidebar = () => {
           <span className="text-[10px] text-stone-400">Executes token swap</span>
         </div>
       </div>
+
+      {/* Transfer Component */}
+      <div 
+        className="p-3 border border-stone-200 rounded-lg cursor-grab flex items-center gap-3 hover:border-green-500 hover:bg-green-50 transition-all bg-white select-none active:cursor-grabbing group"
+        onDragStart={(event) => onDragStart(event, 'transfer', 'Transfer')} 
+        draggable
+      >
+        <div className="bg-green-100 p-2 rounded-md text-green-600 group-hover:bg-green-200 transition-colors">
+            <Repeat className="w-5 h-5" />
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold text-sm text-stone-700">Transfer</span>
+          <span className="text-[10px] text-stone-400">Transfers assets</span>
+        </div>
+      </div>
       
       <div className="mt-auto p-4 bg-stone-50 rounded-lg text-xs text-stone-500 border border-stone-100">
         <p className="font-bold mb-1 flex items-center gap-1">💡 Pro Tip:</p>

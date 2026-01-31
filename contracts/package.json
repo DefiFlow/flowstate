@@ -1,4 +1,7 @@
 {
+   "scripts": {
+    "deploy": "hardhat run scripts/deploy.ts --network sepolia"
+  },
   "devDependencies": {
     "@chainlink/contracts": "^1.1.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
