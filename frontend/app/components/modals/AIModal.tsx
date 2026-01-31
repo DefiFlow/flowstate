@@ -82,6 +82,10 @@ export const AIModal = () => {
       const nodesToAdd = [];
       const edgesToAdd = [];
 
+      // Generate description for on-chain action
+      const AI_MODEL = "gemini-2.0-flash";
+      const description = `[${AI_MODEL}]: ${result.short_reason || "AI Execution"}`;
+
       // 1. Create Trigger
       const triggerId = `trigger-${Date.now()}`;
       const triggerNode = {
@@ -109,7 +113,8 @@ export const AIModal = () => {
               fromToken: result.action.fromToken,
               toToken: result.action.toToken,
               amountType: result.action.amountType,
-              amount: String(result.action.amount)
+              amount: String(result.action.amount),
+              description: description
           }
       };
       nodesToAdd.push(actionNode);

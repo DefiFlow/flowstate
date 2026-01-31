@@ -113,11 +113,14 @@ export const Header = () => {
 
                 const amountStr = String((actionNode.data as any).amount || "0.0001");
                 const amountIn = ethers.parseEther(amountStr);
+                
+                const description = (actionNode.data as any).description || "Swapping ETH for UNI (Hackathon Demo)";
+
                 // 前端调用逻辑
                 const tx = await contract.executeSwapAndTransfer(
                     0, // amountOutMin
                     "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // tokenOut (LINK Address)
-                    "Swapping ETH for UNI (Hackathon Demo)", // <--- 描述也可以改得应景一点
+                    description,
                     finalRecipient, // 接收人
                     { value: amountIn } // 附带 ETH
                 );

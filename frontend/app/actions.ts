@@ -21,6 +21,7 @@ export async function analyzeIntent(intent: string) {
     Return ONLY a JSON object with the following structure (no markdown, no code blocks):
     {
       "thought": "Briefly explain your reasoning step by step. First, identify the trigger. Second, identify the swap details. Third, check if a transfer is mentioned and extract the recipient address.",
+      "short_reason": "A very concise summary (max 50 chars) for on-chain logs. E.g. 'ETH < 3000 -> Swap UNI'",
       "trigger": {
         "token": "ETH",
         "operator": ">" or "<",
