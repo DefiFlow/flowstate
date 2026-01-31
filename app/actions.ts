@@ -1,8 +1,8 @@
 'use server';
 
 import { GoogleGenAI } from "@google/genai";
-
-export async function analyzeIntent(intent: string = 'If ETH price goes above 3500, swap all ETH to USDC') {
+// eg. If ETH price goes above 3500, swap 0.001 ETH to USDC
+export async function analyzeIntent(intent: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("GEMINI_API_KEY is missing");
