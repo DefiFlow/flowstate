@@ -10,8 +10,8 @@ import {
   useEdgesState,
   addEdge,
   Connection,
-  Edge,
-  Node,
+  Edge as FlowEdge,
+  Node as FlowNode,
   Handle,
   Position,
   ReactFlowProvider,
@@ -31,7 +31,7 @@ const PriceTicker = ({ onPriceUpdate }: { onPriceUpdate: (price: number) => void
   useEffect(() => {
     const ws = new WebSocket('wss://stream.binance.com:9443/ws/ethusdt@trade');
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data as string);
       const current = parseFloat(data.p);
       setPrice((prev) => {
         const prevPrice = parseFloat(prev);
@@ -60,7 +60,7 @@ const PriceTicker = ({ onPriceUpdate }: { onPriceUpdate: (price: number) => void
 // 2. 左侧拖拽侧边栏
 // ==========================================
 const Sidebar = () => {
-  const onDragStart = (event: React.DragEvent, nodeType: string, label: string) => {
+  const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string, label: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.setData('application/label', label);
     event.dataTransfer.effectAllowed = 'move';
@@ -212,11 +212,11 @@ const SuccessModal = ({ onClose }: { onClose: () => void }) => (
 // 5. 主逻辑区域 (FlowArea)
 // ==========================================
 const FlowArea = () => {
-  const reactFlowWrapper = useRef(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [currentPrice, setCurrentPrice] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -224,22 +224,23 @@ const FlowArea = () => {
   // --- 连线逻辑 (带箭头) ---
   const onConnect = useCallback((params: Connection) => {
     const newEdge = {
+      id: `${params.source}-${params.target}`,
         ...params,
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
-    };
+    } as FlowEdge;
     setEdges((eds) => addEdge(newEdge, eds));
   }, [setEdges]);
 
   // --- 拖拽放置逻辑 ---
-  const onDragOver = useCallback((event: React.DragEvent) => {
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
   const onDrop = useCallback(
-    (event: React.DragEvent) => {
+    (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       const type = event.dataTransfer.getData('application/reactflow');
       const label = event.dataTransfer.getData('application/label');
@@ -251,7 +252,7 @@ const FlowArea = () => {
         y: event.clientY,
       });
       
-      const newNode: Node = {
+      const newNode: FlowNode = {
         id: `${type}-${Date.now()}`,
         type: 'custom',
         position,
