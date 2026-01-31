@@ -1,8 +1,11 @@
 {
   "devDependencies": {
+    "@chainlink/contracts": "^1.1.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "dotenv": "^17.2.3",
-    "hardhat": "^2.22.18",
-    "@chainlink/contracts": "^1.1.0"
+    "hardhat": "^2.22.18"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0"
   }
 }
