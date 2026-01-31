@@ -79,7 +79,14 @@ export const AIModal = () => {
   };
 
   const updateFlowFromAI = (result: any) => {
-      // Create Trigger
+      const nodesToAdd = [];
+      const edgesToAdd = [];
+
+      // Generate description for on-chain action
+      const AI_MODEL = "gemini-2.0-flash";
+      const description = `[${AI_MODEL}]: ${result.short_reason || "AI Execution"}`;
+
+      // 1. Create Trigger
       const triggerId = `trigger-${Date.now()}`;
       const triggerNode = {
           id: triggerId,
@@ -92,8 +99,9 @@ export const AIModal = () => {
               threshold: result.trigger.threshold.toString()
           }
       };
+      nodesToAdd.push(triggerNode);
 
-      // Create Action
+      // 2. Create Action
       const actionId = `action-${Date.now()}`;
       const actionNode = {
           id: actionId,
@@ -105,12 +113,14 @@ export const AIModal = () => {
               fromToken: result.action.fromToken,
               toToken: result.action.toToken,
               amountType: result.action.amountType,
-              amount: String(result.action.amount)
+              amount: String(result.action.amount),
+              description: description
           }
       };
+      nodesToAdd.push(actionNode);
 
-      // Create Edge
-      const edge = {
+      // 3. Create Edge 1 (Trigger -> Action)
+      const edge1 = {
           id: `${triggerId}-${actionId}`,
           source: triggerId,
           target: actionId,
@@ -118,9 +128,36 @@ export const AIModal = () => {
           style: { stroke: '#3b82f6', strokeWidth: 2 },
           markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
       };
+      edgesToAdd.push(edge1);
 
-      setNodes([triggerNode, actionNode]);
-      setEdges([edge]);
+      // 4. Check for and create Transfer node and edge
+      if (result.transfer && result.transfer.recipient) {
+        const transferId = `transfer-${Date.now()}`;
+        const transferNode = {
+            id: transferId,
+            type: 'custom',
+            position: { x: 100, y: 600 },
+            data: {
+                label: 'Transfer',
+                type: 'transfer',
+                recipient: result.transfer.recipient
+            }
+        };
+        nodesToAdd.push(transferNode);
+
+        const edge2 = {
+            id: `${actionId}-${transferId}`,
+            source: actionId,
+            target: transferId,
+            animated: true,
+            style: { stroke: '#3b82f6', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+        };
+        edgesToAdd.push(edge2);
+      }
+
+      setNodes(nodesToAdd);
+      setEdges(edgesToAdd);
   };
 
   return (
@@ -172,7 +209,7 @@ export const AIModal = () => {
                 </p>
                 <textarea
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 min-h-[100px] mb-4 resize-none"
-                    placeholder="e.g. If ETH price goes above 3500, swap all ETH to USDC..."
+                    placeholder="e.g. If ETH price goes above 3500, swap all ETH to UNI..."
                     value={intent}
                     onChange={(e) => setIntent(e.target.value)}
                     disabled={isProcessing}

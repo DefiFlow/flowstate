@@ -1,7 +1,7 @@
 'use server';
 
 import { GoogleGenAI } from "@google/genai";
-// eg. If ETH price goes above 3500, swap 0.001 ETH to USDC
+// eg. If ETH price goes below 5500, swap 0.001 ETH to UNI, then transfer it to 0xa91411c277607eE3C983064C69feFB947dc81Ba5 (自己搞个备用钱包测)
 export async function analyzeIntent(intent: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -11,15 +11,17 @@ export async function analyzeIntent(intent: string) {
 
   const prompt = `
     You are a DeFi automation assistant.
-    Analyze the following user intent and extract the trigger condition and action.
+    Analyze the following user intent and extract the trigger condition, swap action, and an optional transfer action.
     The trigger is always based on ETH price.
-    The action is a token swap between ETH and BTC.
+    The action is a token swap.
+    The transfer, if present, specifies a recipient address.
 
     User Intent: "${intent}"
 
     Return ONLY a JSON object with the following structure (no markdown, no code blocks):
     {
-      "thought": "Briefly explain your reasoning step by step.",
+      "thought": "Briefly explain your reasoning step by step. First, identify the trigger. Second, identify the swap details. Third, check if a transfer is mentioned and extract the recipient address.",
+      "short_reason": "A very concise summary (max 50 chars) for on-chain logs. E.g. 'ETH < 3000 -> Swap UNI'",
       "trigger": {
         "token": "ETH",
         "operator": ">" or "<",
@@ -27,12 +29,17 @@ export async function analyzeIntent(intent: string) {
       },
       "action": {
         "type": "swap",
-        "fromToken": "ETH" or "BTC",
-        "toToken": "ETH" or "BTC",
+        "fromToken": "ETH" or "UNI",
+        "toToken": "ETH" or "UNI",
         "amountType": "percentage" or "absolute",
         "amount": number
+      },
+      "transfer": {
+        "recipient": "0x... address"
       }
     }
+
+    If no transfer is mentioned, the "transfer" field can be omitted.
   `;
 
   try {

@@ -1,0 +1,80 @@
+{
+  "address": "0x9BDB3e5Ac2Ed64469f9AD3f3eEE088910d92aaB8",
+  "abi": [
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "AgentActionExecuted",
+      "inputs": [
+        {
+          "type": "string",
+          "name": "description",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "timestamp",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "ROUTER_V3",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "address",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "WETH",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "address",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "executeSwapAndTransfer",
+      "constant": false,
+      "stateMutability": "payable",
+      "payable": true,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "amountOutMin"
+        },
+        {
+          "type": "address",
+          "name": "tokenOut"
+        },
+        {
+          "type": "string",
+          "name": "aiDescription"
+        },
+        {
+          "type": "address",
+          "name": "finalRecipient"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "receive",
+      "stateMutability": "payable"
+    }
+  ]
+}

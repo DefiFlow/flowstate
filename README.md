@@ -34,3 +34,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# 注意事项
+1. 比赛开始当天要创建新仓库
+2. 合约不能用当前的这个，要开始比赛后再重新部署一个新的，而且要换一个名字
+3. 新仓库的代码commit和注释必须英文
