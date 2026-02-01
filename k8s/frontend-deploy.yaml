@@ -13,6 +13,8 @@ spec:
       labels:
         app: defiflow-frontend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: nextjs
           # 这是一个占位符，GitHub Actions 会修改它
