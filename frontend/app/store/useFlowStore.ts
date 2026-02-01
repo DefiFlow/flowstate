@@ -25,13 +25,13 @@ interface FlowState {
   // React Flow State
   nodes: FlowNode[];
   edges: FlowEdge[];
-  
+
   // App State
   currentPrice: number;
   isRunning: boolean;
   walletAddress: string | null;
   txHash: string | null;
-  
+
   // Modals State
   showSuccessModal: boolean;
   showAIModal: boolean;
@@ -95,6 +95,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         return node;
       }),
     });
-   },
+  },
   resetFlow: () => set({ nodes: [], edges: [] }),
 }));

@@ -32,7 +32,7 @@ const isValidAddress = (addr: string): addr is `0x${string}` => {
 const FlowArea = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  
+
   const {
     nodes,
     edges,
@@ -68,22 +68,22 @@ const FlowArea = () => {
         x: event.clientX,
         y: event.clientY,
       });
-      
-            const newNode: FlowNode = {
-              id: `${type}-${Date.now()}`,
-              type: 'custom',
-              position,
-              data: {
-                  label,
-                  type,
-                  operator: '>',
-                  threshold: '',
-                  fromToken: 'ETH',
-                  toToken: 'UNI',
-                  amountType: 'percentage',
-                  amount: ''
-              },
-            };
+
+      const newNode: FlowNode = {
+        id: `${type}-${Date.now()}`,
+        type: 'custom',
+        position,
+        data: {
+          label,
+          type,
+          operator: '>',
+          threshold: '',
+          fromToken: 'ETH',
+          toToken: 'UNI',
+          amountType: 'percentage',
+          amount: ''
+        },
+      };
       setNodes(nodes.concat(newNode as any));
     },
     [screenToFlowPosition, setNodes, nodes],
@@ -96,18 +96,18 @@ const FlowArea = () => {
       {/* 主体 */}
       <div className="flex-1 flex h-full" ref={reactFlowWrapper}>
         <Sidebar />
-        
-        <div className="flex-1 h-full bg-stone-100/50 relative">
-           {nodes.length === 0 && (
-             <div className="absolute inset-0 flex items-center justify-center text-stone-300 pointer-events-none z-10">
-               <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-                  <div className="bg-white p-4 rounded-full shadow-sm">
-                      <MousePointer2 className="w-8 h-8 text-stone-400" />
-                  </div>
-                  <span className="text-sm font-medium text-stone-400">Drag components from the sidebar to start</span>
-               </div>
-             </div>
-           )}
+
+        <div className="flex-1 h-full bg-[#08090A] relative">
+          {nodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                <div className="bg-[#1A1D24] p-5 rounded-full shadow-2xl border border-[#2A2B32]">
+                  <MousePointer2 className="w-10 h-10 text-stone-600" />
+                </div>
+                <span className="text-sm font-medium text-stone-600">Drag components from the sidebar to start</span>
+              </div>
+            </div>
+          )}
 
           <ReactFlow
             nodes={nodes}
@@ -120,13 +120,42 @@ const FlowArea = () => {
             nodeTypes={nodeTypes}
             fitView
             attributionPosition="bottom-right"
+            defaultEdgeOptions={{
+              style: { stroke: 'url(#edge-gradient)', strokeWidth: 3 },
+              animated: true,
+            }}
           >
-            <Background color="#cbd5e1" gap={24} size={1} />
-            <Controls className="bg-white border border-stone-200 shadow-lg rounded-xl overflow-hidden !m-4" />
-            <MiniMap 
-                className="!border border-stone-200 !rounded-xl !shadow-lg !m-4" 
-                maskColor="rgba(255, 255, 255, 0.8)" 
-                nodeColor={(n) => n.data.type === 'trigger' ? '#3b82f6' : '#ec4899'} 
+            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+              <defs>
+                <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#00FFD0" />
+                  <stop offset="100%" stopColor="#435CFF" />
+                </linearGradient>
+                <linearGradient id="trigger-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#2B4572" />
+                  <stop offset="100%" stopColor="#1B1D1F" />
+                </linearGradient>
+                <linearGradient id="action-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#69314D" />
+                  <stop offset="100%" stopColor="#1B1D1F" />
+                </linearGradient>
+                <linearGradient id="transfer-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#306357" />
+                  <stop offset="100%" stopColor="#1B1D1F" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <Background color="#1A1D24" gap={24} size={1} />
+            <Controls className="bg-[#1A1D24] border border-[#2A2B32] shadow-2xl rounded-xl overflow-hidden !m-4" />
+            <MiniMap
+              className="!rounded-xl !shadow-2xl !m-4 !bg-[#1A1D24] !border-0"
+              maskColor="rgba(0, 0, 0, 0)"
+              nodeColor={(n) => {
+                if (n.data.type === 'trigger') return '#52BDFF';
+                if (n.data.type === 'action') return '#FF5D73';
+                if (n.data.type === 'transfer') return '#41E43E';
+                return '#6b7280';
+              }}
             />
           </ReactFlow>
         </div>

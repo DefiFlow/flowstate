@@ -13,13 +13,13 @@ export const PriceTicker = () => {
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data as string);
       const current = parseFloat(data.p);
-      
+
       setPriceStr((prev) => {
         const prevPrice = parseFloat(prev);
         setTrend(current > prevPrice ? 'up' : 'down');
         return current.toFixed(2);
       });
-      
+
       setCurrentPrice(current);
     };
     return () => ws.close();
