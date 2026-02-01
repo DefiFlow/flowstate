@@ -45,7 +45,7 @@ jobs:
         with:
           # 重点：指定构建上下文为 frontend 目录
           context: ./frontend
-          file: ./frontend/Dockerfile
+          file: ./frontend/docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
