@@ -4,26 +4,50 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'frontend/**'               # 只有 frontend 目录变化才触发
-      - '.github/workflows/deploy-frontend.yml' # 或者 workflow 本身变化
-      - 'k8s/**'                    # 或者 k8s 配置变化
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
 
 env:
   REGISTRY: ghcr.io
-  # 镜像名建议加上 -frontend 后缀以区分
   IMAGE_NAME: ${{ github.repository }}-frontend
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # 授予写权限以推送 k8s manifest 更新
       packages: write
+
+    # 设置默认工作目录，简化后续命令
+    defaults:
+      run:
+        working-directory: ./frontend
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 1. 设置 Node.js 环境 (带缓存，速度飞快)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # 2. 安装依赖
+      - name: Install dependencies
+        run: npm ci
+
+      # 3. 构建项目 (生成 .next/standalone)
+      # 可以在这里注入构建时需要的环境变量
+      - name: Build with Next.js
+        run: npm run build
+        env:
+          # 如果构建需要 API 地址等，这里加
+          NEXT_PUBLIC_API_URL: https://api.example.com
+
+      # 4. 登录 Docker
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -31,7 +55,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      # 5. 提取 Docker 元数据
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -40,34 +65,38 @@ jobs:
             type=sha,format=long
             latest
 
+      # 6. 构建并推送镜像
+      # 注意：现在的 build context 里已经包含了刚才 npm run build 生成的 .next 文件夹
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # 重点：指定构建上下文为 frontend 目录
+          # 上下文仍然是 frontend 目录
           context: ./frontend
+          # 指向你刚才移动后的 Dockerfile
           file: ./frontend/docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Update K8s Manifest
-        run: |
-          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-$(git rev-parse HEAD)"
-          
-          # 修改根目录下的 k8s/frontend-deploy.yaml
-          sed -i "s|image: .*|image: $NEW_IMAGE|g" k8s/frontend-deploy.yaml
-          
-          cat k8s/frontend-deploy.yaml | grep "image:"
-
-      - name: Commit and Push Manifest changes
+      # 7. 更新 K8s Manifest (回到根目录操作)
+      - name: Update K8s Manifest & Push to Git
+        working-directory: . # 切回根目录
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
           
-          if [[ -n $(git status -s) ]]; then
-            git add k8s/frontend-deploy.yaml
-            git commit -m "chore(ci): update frontend image to sha-$(git rev-parse HEAD)"
-            git push origin main
+          # 从 metadata step 的输出中找到 SHA 标签，确保标签一致性
+          NEW_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep 'sha-')
+          
+          # 使用 sed 更新 K8s manifest 中的镜像标签
+          sed -i "s|image: .*|image: $NEW_TAG|g" k8s/frontend-deploy.yaml
+          
+          # 检查是否有文件变更，然后提交并推送
+          if [[ -n $(git status -s k8s/frontend-deploy.yaml) ]]; then
+             git add k8s/frontend-deploy.yaml
+             # 在 commit message 中加入 [skip ci] 来防止工作流无限循环
+             git commit -m "chore(ci): update frontend image to ${NEW_TAG##*:} [skip ci]"
+             git push origin main
           else
-            echo "No changes to commit"
+             echo "No changes to commit"
           fi
