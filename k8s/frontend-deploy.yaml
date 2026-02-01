@@ -25,6 +25,11 @@ spec:
           env:
             - name: HOSTNAME
               value: "0.0.0.0"
+            - name: GEMINI_API_KEY  # 这是容器内看到的环境变量名
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secrets  # K8s 里 Secret 的名字 (第一步创建的)
+                  key: GEMINI_API_KEY   # Secret 里的键名
 ---
 apiVersion: v1
 kind: Service
