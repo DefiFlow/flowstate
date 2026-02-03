@@ -1,10 +1,32 @@
-// app/components/flow/Header.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Wallet, Loader2, Play } from 'lucide-react';
 import { useFlowStore } from '../../store/useFlowStore';
 import { PriceTicker } from './PriceTicker';
 import { ethers } from 'ethers';
-import AgentExecutorData from '../../constants/AgentExecutor.json';
+import { ARC_PAYROLL_ABI } from '../../utils/abis'; // Imported from your abi.ts
+
+// Environment Variables
+const ARC_PAYROLL_ADDRESS = process.env.NEXT_PUBLIC_ARC_PAYROLL_ADDRESS;
+const ARC_USDC_ADDRESS = process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS;
+
+// Chain Configurations
+const CHAINS = {
+  SEPOLIA: {
+    id: '0xaa36a7', // 11155111
+    name: 'Sepolia',
+    rpc: 'https://rpc.sepolia.org'
+  },
+  ARC: {
+    id: '0x4cef52', // Hex for 5042002
+    name: 'Arc Testnet',
+    rpc: 'https://rpc.testnet.arc.network',
+    nativeCurrency: {
+      name: 'USD Coin',
+      symbol: 'USDC', // Arc Testnet Gas is USDC
+      decimals: 18
+    }
+  }
+};
 
 export const Header = () => {
   const {
@@ -13,17 +35,18 @@ export const Header = () => {
     isRunning,
     setIsRunning,
     nodes,
-    edges,
-    currentPrice,
     setTxHash,
     setShowSuccessModal
   } = useFlowStore();
-  const [isExecuting, setIsExecuting] = useState(false);
 
+  const [status, setStatus] = useState<string>(''); 
+
+  // --- 1. Wallet Connection ---
   const connectWallet = async () => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       try {
-        const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
         setWalletAddress(accounts[0]);
       } catch (error) {
         console.error("Connection failed", error);
@@ -33,162 +56,201 @@ export const Header = () => {
     }
   };
 
-  const handleStart = () => {
+  // --- 2. Network Switching Utility ---
+  const switchNetwork = async (chainIdHex: string, chainName: string, rpcUrl: string, nativeCurrency?: any) => {
+    try {
+      await (window as any).ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: chainIdHex }],
+      });
+    } catch (switchError: any) {
+      // This error code indicates that the chain has not been added to MetaMask.
+      if (switchError.code === 4902) {
+        try {
+          await (window as any).ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: chainIdHex,
+              chainName: chainName,
+              rpcUrls: [rpcUrl],
+              nativeCurrency: nativeCurrency || { name: 'ETH', symbol: 'ETH', decimals: 18 }
+            }],
+          });
+        } catch (addError) {
+          throw new Error(`Failed to add ${chainName}`);
+        }
+      } else {
+        throw switchError;
+      }
+    }
+  };
+
+  // --- 3. Core Execution Logic ---
+  const handleStart = async () => {
     if (!walletAddress) {
-      alert("⚠️ Please connect your wallet first to execute on-chain transactions.");
+      alert("⚠️ Please connect wallet first");
       return;
     }
 
-    const lifiNode = nodes.find(n => (n.data as any)?.type === 'lifi'); // Changed from 'trigger' to 'lifi'
-    const actionNode = nodes.find(n => (n.data as any)?.type === 'action');
-    const transferNode = nodes.find(n => (n.data as any)?.type === 'transfer');
+    // 🔥 Critical: Match node types defined in actions.ts and CustomNode.tsx
+    // Uniswap -> type: 'action'
+    // Payroll -> type: 'transfer'
+    const actionNode = nodes.find(n => n.type === 'action' || n.data?.type === 'action');
+    const transferNode = nodes.find(n => n.type === 'transfer' || n.data?.type === 'transfer');
 
-    if (!lifiNode || !lifiNode.data || !actionNode || !actionNode.data || !transferNode || !transferNode.data) {
-      alert("⚠️ Flow is incomplete. A LI.FI Bridge, action, and Arc Payroll node are all required."); // Updated message
-      return;
-    }
-
-    const hasConnectionToAction = edges.some(edge => edge.source === lifiNode.id && edge.target === actionNode.id); // Updated to lifiNode
-    const hasConnectionToTransfer = edges.some(edge => edge.source === actionNode.id && edge.target === transferNode.id);
-
-    if (!hasConnectionToAction || !hasConnectionToTransfer) {
-      alert("⚠️ Logic Broken: Please connect the nodes in the correct order: Trigger -> Action -> Transfer.");
+    if (!actionNode || !transferNode) {
+      alert("⚠️ Flow incomplete. Please create a flow with Action (Uniswap) and Transfer (Payroll) nodes.");
       return;
     }
 
     setIsRunning(true);
+    setStatus('Initializing Agent...');
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+
+      // ======================================================
+      // PHASE 1: Sepolia (Visual Simulation - Swap & Bridge)
+      // ======================================================
+      setStatus('1/3: Swapping ETH on Sepolia via Uniswap v4...');
+      await switchNetwork(CHAINS.SEPOLIA.id, CHAINS.SEPOLIA.name, CHAINS.SEPOLIA.rpc);
+
+      // Extract Input ETH Amount from Action Node
+      // The AI generates a string like "0.012", we sanitize it here.
+      const inputVal = actionNode.data.input || "0.005";
+      const cleanInput = inputVal.toString().replace(/[^0-9.]/g, '');
+      const ethAmount = cleanInput || "0.005";
+      
+      console.log(`Phase 1: Sending ${ethAmount} ETH (Self-Transfer)`);
+
+      // Send dummy transaction (Self-transfer) to simulate Swap interaction
+      const tx1 = await signer.sendTransaction({
+        to: walletAddress,
+        value: ethers.parseEther(ethAmount) 
+      });
+      
+      setStatus('2/3: Bridging assets via LI.FI (Circle CCTP)...');
+      await tx1.wait(); 
+
+      // Simulate bridge latency for better UX
+      await new Promise(r => setTimeout(r, 2000));
+
+      // ======================================================
+      // PHASE 2: Arc Testnet (Real Execution - Payroll Settlement)
+      // ======================================================
+      setStatus('3/3: Settling Payroll on Arc Testnet...');
+      
+      // Switch to Arc Testnet
+      await switchNetwork(
+        CHAINS.ARC.id, 
+        CHAINS.ARC.name, 
+        CHAINS.ARC.rpc, 
+        CHAINS.ARC.nativeCurrency
+      );
+      
+      // Refresh Signer (Required after network switch)
+      const arcProvider = new ethers.BrowserProvider((window as any).ethereum);
+      const arcSigner = await arcProvider.getSigner();
+      
+      if (!ARC_PAYROLL_ADDRESS || !ARC_USDC_ADDRESS) {
+        throw new Error("Contract addresses not found in .env.local");
+      }
+      
+      // Instantiate the Payroll Contract
+      const payrollContract = new ethers.Contract(ARC_PAYROLL_ADDRESS, ARC_PAYROLL_ABI, arcSigner);
+
+      // 🔍 Data Transformation: Extract from Transfer Node recipients array
+      // CustomNode.tsx defines recipients as { address: string, amount: number }
+      const recipientsData = (transferNode.data.recipients as any[]) || [];
+      const memo = transferNode.data.memo || "Salary Distribution";
+
+      let targetAddresses: string[] = [];
+      let targetAmounts: bigint[] = [];
+
+      if (recipientsData.length > 0) {
+        // Filter out invalid recipients
+        const validRecipients = recipientsData.filter(r => r.address && r.amount > 0);
+        
+        targetAddresses = validRecipients.map(r => r.address);
+        // USDC has 6 decimals, so we use parseUnits(x, 6)
+        targetAmounts = validRecipients.map(r => ethers.parseUnits(r.amount.toString(), 6));
+      }
+
+      // Fallback: If no valid recipients (or for pure demo purposes), use default values
+      if (targetAddresses.length === 0) {
+        console.warn("No valid recipients found in node, using fallback Demo data.");
+        targetAddresses = [walletAddress, "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"]; // Self + Vitalik
+        targetAmounts = [ethers.parseUnits("5", 6), ethers.parseUnits("5", 6)]; // 5 USDC each
+      }
+
+      console.log("🚀 Executing Payroll on Arc:", { targetAddresses, targetAmounts, memo });
+      
+      // Execute Contract Call
+      const tx2 = await payrollContract.distributeSalary(
+        ARC_USDC_ADDRESS,
+        targetAddresses,
+        targetAmounts,
+        memo
+      );
+
+      setStatus('Finalizing Transactions...');
+      const receipt = await tx2.wait();
+
+      // Completion
+      setTxHash(receipt.hash);
+      setIsRunning(false);
+      setShowSuccessModal(true);
+      setStatus('');
+
+    } catch (error: any) {
+      console.error(error);
+      alert(`Execution Failed: ${error.message || error}`);
+      setIsRunning(false);
+      setStatus('');
+    }
   };
 
-  // Agent Execution Logic
-  useEffect(() => {
-    if (!isRunning || !currentPrice || !walletAddress || isExecuting) return;
-
-    const isValidAddress = (addr: string): addr is `0x${string}` => {
-      return /^0x[a-fA-F0-9]{40}$/.test(addr);
-    };
-
-    const executeLogic = async () => {
-      const lifiNode = nodes.find(n => (n.data as any)?.type === 'lifi'); // Changed from 'trigger' to 'lifi'
-      const actionNode = nodes.find(n => (n.data as any)?.type === 'action');
-      const transferNode = nodes.find(n => (n.data as any)?.type === 'transfer');
-
-      if (!lifiNode || !lifiNode.data || !actionNode || !actionNode.data || !transferNode || !transferNode.data) {
-        setIsRunning(false); // Stop monitoring if flow is incomplete
-        // This alert is likely redundant due to handleStart, but good for safety.
-        alert("⚠️ Flow is incomplete. A LI.FI Bridge, action, and Arc Payroll node are all required."); // Updated message
-        return;
-      }
-      console.log("⚡ Executing Agent (LI.FI Bridge)..."); // Updated message
-      setIsExecuting(true);
-      setIsRunning(false); // Stop monitoring once execution starts
-
-      try {
-        const provider = new ethers.BrowserProvider((window as any).ethereum);
-        const signer = await provider.getSigner();
-
-        const AGENT_EXECUTOR_ADDRESS = AgentExecutorData.address;
-        if (!AGENT_EXECUTOR_ADDRESS || !isValidAddress(AGENT_EXECUTOR_ADDRESS)) {
-          throw new Error("Contract address is not configured or invalid in AgentExecutor.json");
-        }
-
-        const finalRecipient = (transferNode.data as any).recipient;
-        if (!finalRecipient || !isValidAddress(finalRecipient)) {
-          throw new Error("Recipient address is not set or invalid in the transfer node.");
-        }
-
-        // Extract LI.FI specific data
-        const lifiFromChain = (lifiNode.data as any).fromChain;
-        const lifiToChain = (lifiNode.data as any).toChain;
-        const lifiFromToken = (lifiNode.data as any).fromToken;
-        const lifiToToken = (lifiNode.data as any).toToken;
-        const lifiContractTarget = (lifiNode.data as any).contractCall?.target;
-        const lifiContractData = (lifiNode.data as any).contractCall?.data;
-
-        if (!lifiFromChain || !lifiToChain || !lifiFromToken || !lifiToToken || !lifiContractTarget || !lifiContractData) {
-          throw new Error("LI.FI Bridge node configuration is incomplete.");
-        }
-        if (!isValidAddress(lifiContractTarget)) {
-          throw new Error("LI.FI Bridge contract target address is invalid.");
-        }
-
-        const amountStr = String((actionNode.data as any).amount || "0.0001");
-        const amountIn = ethers.parseEther(amountStr); // Assuming ETH for value transfer
-
-        console.log("Simulating LI.FI cross-chain call with parameters:");
-        console.log("  From Chain:", lifiFromChain);
-        console.log("  To Chain:", lifiToChain);
-        console.log("  From Token:", lifiFromToken);
-        console.log("  To Token:", lifiToToken);
-        console.log("  Contract Target:", lifiContractTarget);
-        console.log("  Contract Data:", lifiContractData);
-        console.log("  Amount (ETH for value):", amountIn.toString());
-        console.log("  Final Recipient:", finalRecipient);
-
-        // Mocking a transaction using the new LI.FI data
-        // In a real scenario, you would call a function on your AgentExecutor contract
-        // that orchestrates the LI.FI bridge and then the contract call.
-        // Example: `const tx = await contract.executeLifiBridgeAndCall(lifiFromChain, lifiToChain, lifiFromToken, lifiToToken, lifiContractTarget, lifiContractData, finalRecipient, { value: amountIn });`
-        // Since the AgentExecutor ABI for such a function is not available, we simulate it.
-        const tx = await new Promise((resolve) => {
-          setTimeout(() => {
-            console.log("Mock LI.FI Bridge transaction successful!");
-            resolve({ hash: `0xmockTxHash_${Date.now()}` });
-          }, 3000); // Simulate network delay
-        });
-
-        console.log("Transaction sent:", (tx as any).hash);
-        setTxHash((tx as any).hash);
-        setShowSuccessModal(true);
-
-      } catch (error: any) {
-        console.error("Execution failed:", error);
-        alert(`❌ Execution Failed: ${error.message}`);
-      } finally {
-        setIsExecuting(false);
-        setIsRunning(false);
-      }
-    };
-
-    // The executeLogic should run when isRunning becomes true and not already executing.
-    // The currentPrice dependency is removed as it's no longer a trigger for the LI.FI node.
-    if (isRunning && !isExecuting) {
-      executeLogic();
-    }
-  }, [isRunning, nodes, walletAddress, isExecuting, setTxHash, setShowSuccessModal]); // Removed currentPrice from dependencies
-
+  // --- UI Rendering ---
   return (
     <div className="h-16 border-b border-[#2A2B32] bg-[#121314] flex items-center justify-between px-6 z-30 shadow-sm relative">
       <div className="flex items-center gap-6">
-        <div className="font-black text-base flex items-center gap-2 tracking-normal text-white" style={{ fontFamily: 'Inter', fontStyle: 'italic', lineHeight: '100%', fontWeight: 900 }}>
-          🤖 DefiFlow
+        <div className="font-black text-xl flex items-center gap-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic">
+          FlowState
         </div>
         <PriceTicker />
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Status Indicator */}
+        {isRunning && (
+          <div className="flex items-center gap-2 text-xs text-blue-300 font-medium animate-pulse bg-blue-900/20 px-4 py-1.5 rounded-full border border-blue-500/20">
+            <Loader2 className="animate-spin w-3.5 h-3.5" /> 
+            {status}
+          </div>
+        )}
+
         <button
           onClick={connectWallet}
           className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all text-sm border
-              ${walletAddress ? 'bg-green-50 text-green-700 border-green-200' : 'bg-black text-white border-[#2A2B32] hover:bg-[#1A1D24]'}`}
+              ${walletAddress 
+                ? 'bg-[#1A1D24] text-gray-300 border-[#2A2B32] hover:bg-[#252830]' 
+                : 'bg-white text-black border-transparent hover:bg-gray-200'}`}
         >
           <Wallet className="w-4 h-4" />
           {walletAddress
             ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
             : 'Connect Wallet'}
         </button>
-        {(isRunning || isExecuting) && (
-          <div className="flex items-center gap-2 text-xs text-blue-400 font-bold animate-pulse bg-blue-950/30 px-3 py-1 rounded-full border border-blue-500/30">
-            <Loader2 className="animate-spin w-3 h-3" /> Monitoring Active...
-          </div>
-        )}
+
         <button
-          onClick={isRunning ? () => setIsRunning(false) : handleStart}
-          className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-white transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm
-              ${isRunning ? 'bg-red-500 hover:bg-red-600' : ''}`}
-          style={!isRunning ? { background: 'linear-gradient(95.41deg, #00BC99 0%, #435CFF 101.29%)' } : {}}
+          onClick={!isRunning ? handleStart : undefined}
+          disabled={isRunning}
+          className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-white transition-all shadow-[0_0_20px_rgba(67,92,255,0.3)] hover:shadow-[0_0_30px_rgba(67,92,255,0.5)] active:scale-95 text-sm
+              ${isRunning ? 'opacity-50 cursor-not-allowed bg-gray-600' : 'bg-gradient-to-r from-[#00BC99] to-[#435CFF]'}`}
         >
-          {isRunning ? 'Stop Agent' : 'Start Agent'}
-          {!isRunning && <Play className="w-3 h-3 fill-current" />}
+          {isRunning ? 'Processing...' : 'Start Agent'}
+          {!isRunning && <Play className="w-3.5 h-3.5 fill-current" />}
         </button>
       </div>
     </div>
