@@ -1,8 +1,8 @@
 'use server';
 
 import { GoogleGenAI } from "@google/genai";
-// eg. If ETH price goes below 5500, swap 0.001 ETH to UNI, then transfer it to 0xa91411c277607eE3C983064C69feFB947dc81Ba5 (自己搞个备用钱包测)
-export async function analyzeIntent(intent: string) {
+// eg. Pay 10 USDC February Salary to vitalik.eth and hayden.eth on Arc using my Sepolia ETH.
+export async function analyzeIntent(intent: string, currentPrice: number) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("GEMINI_API_KEY is missing");
@@ -11,35 +11,73 @@ export async function analyzeIntent(intent: string) {
 
   const prompt = `
     You are a DeFi automation assistant.
-    Analyze the following user intent and extract the trigger condition, swap action, and an optional transfer action.
-    The trigger is always based on ETH price.
-    The action is a token swap.
-    The transfer, if present, specifies a recipient address.
+    The user wants to execute a workflow involving a Swap, a Bridge, and a Payroll distribution.
+    
+    Context:
+    - Current ETH Price: ${currentPrice} USDC
+    - User Intent: "${intent}"
 
-    User Intent: "${intent}"
+    Task:
+    1. Parse the intent to identify:
+       - Recipients and their amounts (e.g., "10 USDC to vitalik.eth").
+       - Total USDC required (Sum of all recipient amounts).
+       - Memo/Description (e.g., "February Salary").
+    2. Calculate the required ETH input for the swap:
+       - Formula: (Total USDC / Current ETH Price) * 1.05
+       - The 1.05 multiplier is a buffer for slippage and fees.
+       - Result should be a string representing the ETH amount (e.g., "0.012").
+    3. Generate a JSON object for a React Flow state with 3 connected nodes:
+       
+       Node 1: Uniswap Swap
+       - Type: "action"
+       - Label: "Uniswap"
+       - Input: The calculated ETH amount (e.g., "0.012")
+       - Output: The total USDC amount (e.g., "~20 USDC")
 
-    Return ONLY a JSON object with the following structure (no markdown, no code blocks):
+       Node 2: Li.Fi Bridge
+       - Type: "lifi"
+       - Label: "Li.Fi Bridge"
+       - From Chain: "Sepolia" (inferred from "my Sepolia ETH")
+       - To Chain: "Arc" (inferred from "on Arc")
+       - Token: "USDC"
+       - Bridge: "Circle CCTP"
+
+       Node 3: Arc Payroll
+       - Type: "transfer"
+       - Label: "Arc Payroll"
+       - Token: "USDC"
+       - Recipients: Array of objects { "address": "...", "amount": ... }
+       - Memo: The extracted memo
+
+    Output JSON Structure:
     {
-      "thought": "Briefly explain your reasoning step by step. First, identify the trigger. Second, identify the swap details. Third, check if a transfer is mentioned and extract the recipient address.",
-      "short_reason": "A very concise summary (max 50 chars) for on-chain logs. E.g. 'ETH < 3000 -> Swap UNI'",
-      "trigger": {
-        "token": "ETH",
-        "operator": ">" or "<",
-        "threshold": number
-      },
-      "action": {
-        "type": "swap",
-        "fromToken": "ETH" or "UNI",
-        "toToken": "ETH" or "UNI",
-        "amountType": "percentage" or "absolute",
-        "amount": number
-      },
-      "transfer": {
-        "recipient": "0x... address"
-      }
+      "nodes": [
+        {
+          "id": "1",
+          "type": "action",
+          "position": { "x": 250, "y": 0 },
+          "data": { "label": "Uniswap", "type": "action", "input": "...", "output": "..." }
+        },
+        {
+          "id": "2",
+          "type": "lifi",
+          "position": { "x": 250, "y": 300 },
+          "data": { "label": "Li.Fi Bridge", "type": "lifi", "fromChain": "...", "toChain": "...", "token": "...", "bridge": "..." }
+        },
+        {
+          "id": "3",
+          "type": "transfer",
+          "position": { "x": 250, "y": 600 },
+          "data": { "label": "Arc Payroll", "type": "transfer", "token": "...", "recipients": [{ "address": "...", "amount": 0 }], "memo": "..." }
+        }
+      ],
+      "edges": [
+        { "id": "e1-2", "source": "1", "target": "2" },
+        { "id": "e2-3", "source": "2", "target": "3" }
+      ]
     }
-
-    If no transfer is mentioned, the "transfer" field can be omitted.
+    
+    Return ONLY the JSON object. No markdown formatting.
   `;
 
   try {

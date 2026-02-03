@@ -6,7 +6,7 @@ import { useFlowStore } from '../../store/useFlowStore';
 import { analyzeIntent } from '../../actions';
 
 export const AIModal = () => {
-    const { setShowAIModal, setNodes, setEdges } = useFlowStore();
+    const { setShowAIModal, setNodes, setEdges, currentPrice } = useFlowStore();
     const onClose = () => setShowAIModal(false);
 
     const [intent, setIntent] = useState('');
@@ -28,7 +28,7 @@ export const AIModal = () => {
         setThoughtText("");
 
         try {
-            const result = await analyzeIntent(intent);
+            const result = await analyzeIntent(intent, currentPrice);
 
             if (result && !result.error) {
                 // Display thoughts without typewriter effect (Step 0)
@@ -71,83 +71,15 @@ export const AIModal = () => {
     };
 
     const updateFlowFromAI = (result: any) => {
-        const nodesToAdd = [];
-        const edgesToAdd = [];
-
-        // Generate description for on-chain action
-        const AI_MODEL = "gemini-2.0-flash";
-        const description = `[${AI_MODEL}]: ${result.short_reason || "AI Execution"}`;
-
-        // 1. Create Trigger
-        const triggerId = `trigger-${Date.now()}`;
-        const triggerNode = {
-            id: triggerId,
-            type: 'custom',
-            position: { x: 100, y: 100 },
-            data: {
-                label: 'Price Trigger',
-                type: 'trigger',
-                operator: result.trigger.operator,
-                threshold: result.trigger.threshold.toString()
-            }
-        };
-        nodesToAdd.push(triggerNode);
-
-        // 2. Create Action
-        const actionId = `action-${Date.now()}`;
-        const actionNode = {
-            id: actionId,
-            type: 'custom',
-            position: { x: 100, y: 350 },
-            data: {
-                label: 'Uniswap Action',
-                type: 'action',
-                fromToken: result.action.fromToken,
-                toToken: result.action.toToken,
-                amountType: result.action.amountType,
-                amount: String(result.action.amount),
-                description: description
-            }
-        };
-        nodesToAdd.push(actionNode);
-
-        // 3. Create Edge 1 (Trigger -> Action)
-        const edge1 = {
-            id: `${triggerId}-${actionId}`,
-            source: triggerId,
-            target: actionId,
-            animated: true,
-            style: { stroke: '#3b82f6', strokeWidth: 2 },
-        };
-        edgesToAdd.push(edge1);
-
-        // 4. Check for and create Transfer node and edge
-        if (result.transfer && result.transfer.recipient) {
-            const transferId = `transfer-${Date.now()}`;
-            const transferNode = {
-                id: transferId,
-                type: 'custom',
-                position: { x: 100, y: 600 },
-                data: {
-                    label: 'Transfer',
-                    type: 'transfer',
-                    recipient: result.transfer.recipient
-                }
-            };
-            nodesToAdd.push(transferNode);
-
-            const edge2 = {
-                id: `${actionId}-${transferId}`,
-                source: actionId,
-                target: transferId,
-                animated: true,
-                style: { stroke: '#3b82f6', strokeWidth: 2 },
-            };
-            edgesToAdd.push(edge2);
+        if (result.nodes && result.edges) {
+            // Ensure all nodes use the 'custom' type to match FlowBuilder configuration
+            const formattedNodes = result.nodes.map((node: any) => ({
+                ...node,
+                type: 'custom'
+            }));
+            setNodes(formattedNodes);
+            setEdges(result.edges);
         }
-
-        setNodes(nodesToAdd);
-        setEdges(edgesToAdd);
     };
 
     return (
