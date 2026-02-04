@@ -10,8 +10,8 @@ async function main() {
   // Deploy ArcPayroll (Core Logic)
   // --------------------------------------------------------
   const ArcPayroll = await hre.ethers.getContractFactory("ArcPayroll");
-  // 如果 Payroll 合约需要绑定支付代币（比如只能发 USDC），这里可能需要传入 usdcAddress
-  // 如果它是通用的，留空即可
+  // If the Payroll contract needs a specific payment token (e.g., only USDC),
+  // you might need to pass its address here. If it's generic, leave it empty.
   const payroll = await ArcPayroll.deploy();
   await payroll.waitForDeployment();
   const payrollAddress = await payroll.getAddress();
