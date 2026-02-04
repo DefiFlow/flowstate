@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: process.env.ETHERSCAN_API_KEY || "", // Sepolia API Key
       // Arc's explorer usually doesn't require a real Key, but a placeholder must be filled here to prevent errors
-      arc: "any-string-api-key"
+      arcTestnetcd: "any-string-api-key"
     },
     // ✅ New: Arc custom chain verification configuration (because Hardhat doesn't know Arc's explorer API by default)
     customChains: [
