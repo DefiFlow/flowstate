@@ -1,6 +1,6 @@
 // app/components/flow/Sidebar.tsx
 import React from 'react';
-import { BrainCircuit, Zap, Repeat, MousePointer2 } from 'lucide-react';
+import { BrainCircuit, Repeat, MousePointer2, Search } from 'lucide-react';
 import { useFlowStore } from '../../store/useFlowStore';
 
 export const Sidebar = () => {
@@ -49,21 +49,21 @@ export const Sidebar = () => {
         <MousePointer2 className="w-4 h-4 text-[#FF5D73] ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
-      {/* LI.FI Bridge Component (formerly Trigger) */}
+      {/* ENS Resolver Component */}
       <div
-        className="p-3 border border-[#2A2B32] rounded-xl cursor-grab flex items-center gap-3 transition-all select-none active:cursor-grabbing group shadow-sm hover:border-[#52BDFF] hover:scale-[1.02]"
-        style={{ background: 'linear-gradient(90deg, #2B4572 0%, #1B1D1F 100%)' }}
-        onDragStart={(event) => onDragStart(event, 'lifi', 'LI.FI Bridge')} // Changed type to 'lifi' and label
+        className="p-3 border border-[#2A2B32] rounded-xl cursor-grab flex items-center gap-3 transition-all select-none active:cursor-grabbing group shadow-sm hover:border-[#FFB800] hover:scale-[1.02]"
+        style={{ background: 'linear-gradient(90deg, #725A2B 0%, #1B1D1F 100%)' }}
+        onDragStart={(event) => onDragStart(event, 'ens', 'ENS Resolver')}
         draggable
       >
-        <div className="bg-blue-500/20 p-2 rounded-lg text-[#52BDFF] group-hover:bg-[#52BDFF] group-hover:text-white transition-all shadow-sm">
-          <Zap className="w-5 h-5" />
+        <div className="bg-yellow-500/20 p-2 rounded-lg text-[#FFB800] group-hover:bg-[#FFB800] group-hover:text-white transition-all shadow-sm">
+          <Search className="w-5 h-5" />
         </div>
         <div className="flex flex-col">
-          <span className="font-bold text-sm text-white transition-colors">LI.FI Bridge</span> {/* Changed label */}
-          <span className="text-[10px] text-stone-400 group-hover:text-blue-100 transition-colors">Cross-chain asset transfer</span> {/* Updated description */}
+          <span className="font-bold text-sm text-white transition-colors">ENS Resolver</span>
+          <span className="text-[10px] text-stone-400 group-hover:text-yellow-100 transition-colors">Resolve ENS names</span>
         </div>
-        <MousePointer2 className="w-4 h-4 text-[#52BDFF] ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+        <MousePointer2 className="w-4 h-4 text-[#FFB800] ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       {/* Transfer Component */}

@@ -6,25 +6,23 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("👨‍💻 Deploying contracts with the account:", deployer.address);
 
-  // 1. Deploy MockUSDC (your private treasury)
-  // This way you have a fully controllable USDC on Arc, and transfers always succeed during demonstrations.
-  const MockUSDC = await hre.ethers.getContractFactory("MockUSDC");
-  const usdc = await MockUSDC.deploy();
-  await usdc.waitForDeployment();
-  const usdcAddress = await usdc.getAddress();
-  console.log("💰 MockUSDC deployed to:", usdcAddress);
-
-  // 2. Deploy ArcPayroll (core payroll contract)
+  // --------------------------------------------------------
+  // Deploy ArcPayroll (Core Logic)
+  // --------------------------------------------------------
   const ArcPayroll = await hre.ethers.getContractFactory("ArcPayroll");
+  // If the Payroll contract needs a specific payment token (e.g., only USDC),
+  // you might need to pass its address here. If it's generic, leave it empty.
   const payroll = await ArcPayroll.deploy();
   await payroll.waitForDeployment();
   const payrollAddress = await payroll.getAddress();
   console.log("📜 ArcPayroll deployed to:", payrollAddress);
 
+  // --------------------------------------------------------
+  // 🎉 Output for Copy-Pasting
+  // --------------------------------------------------------
   console.log("\n----------------------------------------------------");
-  console.log("🎉 Deployment Complete! Save these for your Frontend application:");
+  console.log("🎉 Deployment Complete! Copy these to your .env file:");
   console.log("----------------------------------------------------");
-  console.log(`NEXT_PUBLIC_ARC_USDC_ADDRESS="${usdcAddress}"`);
   console.log(`NEXT_PUBLIC_ARC_PAYROLL_ADDRESS="${payrollAddress}"`);
   console.log("----------------------------------------------------");
 }

@@ -1,26 +1,30 @@
 // app/components/flow/CustomNode.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { Handle, Position, useReactFlow } from '@xyflow/react';
-import { Zap, Repeat, ArrowRight, CheckCircle, Wallet, Loader2, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Handle, Position, useReactFlow, useNodes, useEdges } from '@xyflow/react';
+import { Repeat, ArrowRight, CheckCircle, Wallet, Loader2, Search } from 'lucide-react';
 import { ethers } from 'ethers';
 import { useFlowStore } from '../../store/useFlowStore';
 
 const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 const isEnsName = (name: string) => name.endsWith('.eth');
 
-// 注意：确保替换为有效的 RPC URL
-const ensProvider = new ethers.JsonRpcProvider('https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID');
+// 使用懒加载初始化 Provider，避免 SSR 期间因相对路径报错
+let ensProvider: ethers.JsonRpcProvider | null = null;
+const getEnsProvider = () => {
+  if (!ensProvider && typeof window !== 'undefined') {
+    ensProvider = new ethers.JsonRpcProvider(window.location.origin + "/api/rpc");
+  }
+  return ensProvider;
+};
 
 const RecipientRow = ({
   index,
   recipient,
-  onChange,
-  onRemove
+  onChange
 }: {
   index: number;
-  recipient: { address: string; amount: number; input?: string };
+  recipient: { address: string; amount: string | number; input?: string };
   onChange: (index: number, field: string, value: any) => void;
-  onRemove: (index: number) => void;
 }) => {
   const [localInput, setLocalInput] = useState(recipient.input || recipient.address || '');
   const [isResolving, setIsResolving] = useState(false);
@@ -41,7 +45,9 @@ const RecipientRow = ({
       setIsValid(false);
       setIsResolving(true);
       try {
-        const addr = await ensProvider.resolveName(val);
+        const provider = getEnsProvider();
+        const addr = provider ? await provider.resolveName(val) : null;
+        console.log(addr)
         if (addr) {
           onChange(index, 'address', addr);
           setIsValid(true);
@@ -91,18 +97,15 @@ const RecipientRow = ({
         value={recipient.amount || ''}
         onChange={(e) => onChange(index, 'amount', e.target.value)}
       />
-      <button
-        onClick={() => onRemove(index)}
-        className="p-1.5 rounded-lg text-stone-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover/row:opacity-100"
-      >
-        <Trash2 className="w-3 h-3" />
-      </button>
+      <div className="w-6" /> {/* Spacer to maintain alignment */}
     </div>
   );
 };
 
 export const CustomNode = ({ id, data }: { id: string, data: any }) => {
   const { updateNodeData } = useReactFlow();
+  const nodes = useNodes();
+  const edges = useEdges();
   const currentPrice = useFlowStore((state) => state.currentPrice);
 
   useEffect(() => {
@@ -116,22 +119,22 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
     }
   }, [data.input, currentPrice, data.type, id, updateNodeData, data.output]);
 
+  const parentEnsNodeRecipient = useMemo(() => {
+    if (data.type !== 'transfer') return null;
+    const incomingEdge = edges.find(edge => edge.target === id);
+    if (!incomingEdge) return null;
+    const parentNode = nodes.find(node => node.id === incomingEdge.source);
+    if (!parentNode || parentNode.data.type !== 'ens' || !Array.isArray(parentNode.data.recipients) || parentNode.data.recipients.length === 0) {
+      return null;
+    }
+    return parentNode.data.recipients[0];
+  }, [id, data.type, nodes, edges]);
+
   const handleChange = (field: string, value: string) => {
     updateNodeData(id, { ...data, [field]: value });
   };
 
-  const recipients = data.recipients || [];
-
-  const addRecipient = useCallback(() => {
-    if (recipients.length >= 5) return;
-    const newRecipients = [...recipients, { address: '', amount: 0, input: '' }];
-    updateNodeData(id, { ...data, recipients: newRecipients });
-  }, [id, data, recipients, updateNodeData]);
-
-  const removeRecipient = useCallback((index: number) => {
-    const newRecipients = recipients.filter((_: any, i: number) => i !== index);
-    updateNodeData(id, { ...data, recipients: newRecipients });
-  }, [id, data, recipients, updateNodeData]);
+  const recipients = Array.isArray(data.recipients) ? data.recipients : [];
 
   const updateRecipient = useCallback((index: number, field: string, value: any) => {
     const newRecipients = [...recipients];
@@ -141,7 +144,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getTypeStyles = () => {
     switch (data.type) {
-      case 'lifi': return 'border-[#52BDFF]/50 hover:border-[#52BDFF] shadow-blue-500/10';
+      case 'ens': return 'border-[#FFB800]/50 hover:border-[#FFB800] shadow-yellow-500/10';
       case 'action': return 'border-[#FF5D73]/50 hover:border-[#FF5D73] shadow-pink-500/10';
       case 'transfer': return 'border-[#41E43E]/50 hover:border-[#41E43E] shadow-green-500/10';
       default: return 'border-stone-700 hover:border-stone-500';
@@ -150,7 +153,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getBackgroundStyle = () => {
     switch (data.type) {
-      case 'lifi': return { background: 'linear-gradient(90deg, #2B4572 0%, #1B1D1F 100%)' };
+      case 'ens': return { background: 'linear-gradient(90deg, #725A2B 0%, #1B1D1F 100%)' };
       case 'action': return { background: 'linear-gradient(90deg, #69314D 0%, #1B1D1F 100%)' };
       case 'transfer': return { background: 'linear-gradient(90deg, #306357 0%, #1B1D1F 100%)' };
       default: return { background: '#1A1D24' };
@@ -159,7 +162,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getIcon = () => {
     switch (data.type) {
-      case 'lifi': return <Zap className="w-4 h-4 text-[#52BDFF]" />;
+      case 'ens': return <Search className="w-4 h-4 text-[#FFB800]" />;
       case 'action': return <Repeat className="w-4 h-4 text-[#FF5D73]" />;
       case 'transfer': return <Wallet className="w-4 h-4 text-[#41E43E]" />;
       default: return null;
@@ -175,7 +178,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
       style={getBackgroundStyle()}
     >
       {/* Top Handle */}
-      {(data.type === 'lifi' || data.type === 'transfer') && (
+      {(data.type === 'ens' || data.type === 'transfer') && (
         <Handle
           type="target"
           position={Position.Top}
@@ -189,69 +192,29 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
           {getIcon()}
         </div>
         <span className="font-bold text-sm text-white tracking-tight">
-          {data.type === 'transfer' ? 'Arc Payroll' : data.label}
+          {data.type === 'transfer' ? 'Arc Payroll' : data.type === 'ens' ? 'ENS Resolver' : data.label}
         </span>
         <div className="ml-auto w-2 h-2 rounded-full bg-stone-700"></div>
       </div>
 
       {/* Content Area */}
-      {data.type === 'lifi' ? (
+      {data.type === 'ens' ? (
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Source</label>
-              <input
-                type="text"
-                className="nodrag w-full border border-stone-700 rounded-lg px-2 py-1.5 text-xs text-white bg-white/10 focus:outline-none focus:border-blue-500 font-mono"
-                placeholder="Sepolia"
-                value={data.fromChain || ''}
-                onChange={(e) => handleChange('fromChain', e.target.value)}
-              />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">ENS to Resolve</label>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Dest</label>
-              <input
-                type="text"
-                className="nodrag w-full border border-stone-700 rounded-lg px-2 py-1.5 text-xs text-white bg-white/10 focus:outline-none focus:border-blue-500 font-mono"
-                placeholder="Arc Testnet"
-                value={data.toChain || ''}
-                onChange={(e) => handleChange('toChain', e.target.value)}
-              />
+            
+            <div className="flex flex-col gap-2">
+              {recipients.map((r: any, i: number) => (
+                <RecipientRow
+                  key={i}
+                  index={i}
+                  recipient={r}
+                  onChange={updateRecipient}
+                />
+              ))}
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Token</label>
-              <input
-                type="text"
-                className="nodrag w-full border border-stone-700 rounded-lg px-2 py-1.5 text-xs text-white bg-white/10 focus:outline-none focus:border-blue-500 font-mono"
-                placeholder="USDC"
-                value={data.token || ''}
-                onChange={(e) => handleChange('token', e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Bridge</label>
-              <input
-                type="text"
-                className="nodrag w-full border border-stone-700 rounded-lg px-2 py-1.5 text-xs text-white bg-white/10 focus:outline-none focus:border-blue-500 font-mono"
-                placeholder="Circle CCTP"
-                value={data.bridge || ''}
-                onChange={(e) => handleChange('bridge', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Payload</label>
-            <input
-              type="text"
-              className="nodrag w-full border border-stone-700 rounded-lg px-2 py-1.5 text-[10px] text-stone-400 bg-white/5 focus:outline-none focus:border-blue-500 font-mono"
-              placeholder="0xa905..."
-              value={data.payload || ''}
-              onChange={(e) => handleChange('payload', e.target.value)}
-            />
           </div>
         </div>
       ) : data.type === 'action' ? (
@@ -280,44 +243,30 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
       ) : (
         /* Transfer Node UI */
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-             <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Token</label>
-             <input
-               type="text"
-               className="nodrag w-full border border-stone-700 rounded-lg px-3 py-1.5 text-xs text-white bg-white/10 focus:outline-none focus:border-green-500 font-mono"
-               placeholder="USDC"
-               value={data.token || ''}
-               onChange={(e) => handleChange('token', e.target.value)}
-             />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Recipients ({recipients.length}/5)</label>
+          {parentEnsNodeRecipient ? (
+            <div className="p-3 bg-white/5 rounded-lg border border-stone-700/50 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-stone-400">Recipient</span>
+                <span className="font-mono text-xs text-white break-all">{parentEnsNodeRecipient.input || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-stone-400">Amount</span>
+                <span className="font-mono text-xs text-white">{parentEnsNodeRecipient.amount} USDC</span>
+              </div>
+              {parentEnsNodeRecipient.address && (
+                <div className="flex justify-between items-start pt-2 mt-1 border-t border-stone-700/50">
+                  <span className="text-[10px] text-stone-400 mt-0.5">Resolved Address</span>
+                  <span className="font-mono text-xs text-green-400 text-right break-all">{parentEnsNodeRecipient.address}</span>
+                </div>
+              )}
             </div>
-            
-            <div className="flex flex-col gap-2">
-              {recipients.map((r: any, i: number) => (
-                <RecipientRow
-                  key={i}
-                  index={i}
-                  recipient={r}
-                  onChange={updateRecipient}
-                  onRemove={removeRecipient}
-                />
-              ))}
+          ) : (
+            <div className="p-3 bg-white/5 rounded-lg border border-stone-700/50">
+              <p className="text-[10px] text-stone-400 leading-relaxed">
+                <span className="text-yellow-400 font-bold">Unlinked:</span> Connect to an ENS Resolver node.
+              </p>
             </div>
-
-            {recipients.length < 5 && (
-              <button
-                onClick={addRecipient}
-                className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg border border-dashed border-stone-700 text-[10px] text-stone-400 hover:text-white hover:border-stone-500 hover:bg-white/5 transition-all mt-1"
-              >
-                <Plus className="w-3 h-3" />
-                Add Recipient
-              </button>
-            )}
-          </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Memo</label>

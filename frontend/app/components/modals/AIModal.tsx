@@ -140,7 +140,7 @@ export const AIModal = () => {
                         <textarea
                             className="w-full border border-white/20 rounded-lg p-3 text-sm focus:outline-none focus:border-white/40 min-h-[100px] mb-4 resize-none text-white placeholder-white/50"
                             style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                            placeholder="e.g. If ETH price goes above 3500, swap all ETH to UNI..."
+                            placeholder="e.g. Swap 1 ETH to USDC, resolve vitalik.eth, and pay salary on Arc..."
                             value={intent}
                             onChange={(e) => setIntent(e.target.value)}
                             disabled={isProcessing}

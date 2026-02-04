@@ -4,7 +4,6 @@ require("dotenv").config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
-const ARC_RPC_URL = process.env.ARC_RPC_URL || "https://rpc-testnet.arc.circle.com"; // Arc Testnet RPC URL (default official node, you can override in .env)
 
 const config: HardhatUserConfig = {
   solidity: "0.8.20",
@@ -31,7 +30,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: process.env.ETHERSCAN_API_KEY || "", // Sepolia API Key
       // Arc's explorer usually doesn't require a real Key, but a placeholder must be filled here to prevent errors
-      arc: "any-string-api-key"
+      arcTestnetcd: "any-string-api-key"
     },
     // ✅ New: Arc custom chain verification configuration (because Hardhat doesn't know Arc's explorer API by default)
     customChains: [

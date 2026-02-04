@@ -81,8 +81,9 @@ const FlowArea = () => {
           toToken: 'UNI',
           amountType: 'percentage',
           amount: '',
-          recipientInput: type === 'transfer' ? 'vitalik.eth' : '', // Initialize with ENS for demo
-          memo: type === 'transfer' ? 'Feb 2026 Salary' : '' // Initialize memo for demo
+          // Initialize ENS node with demo data, Transfer node with memo
+          recipients: type === 'ens' ? [{ address: '', amount: 10, input: 'vitalik.eth' }] : [],
+          memo: type === 'transfer' ? 'Feb 2026 Salary' : ''
         },
       };
       setNodes(nodes.concat(newNode as any));
@@ -152,7 +153,7 @@ const FlowArea = () => {
               className="!rounded-xl !shadow-2xl !m-4 !bg-[#1A1D24] !border-0"
               maskColor="rgba(0, 0, 0, 0)"
               nodeColor={(n) => {
-                if (n.data.type === 'lifi') return '#52BDFF'; // Updated to 'lifi'
+                if (n.data.type === 'ens') return '#FFB800'; // ENS Yellow/Orange
                 if (n.data.type === 'action') return '#FF5D73';
                 if (n.data.type === 'transfer') return '#41E43E';
                 return '#6b7280';

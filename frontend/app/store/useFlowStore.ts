@@ -19,7 +19,7 @@ export type Recipient = {
 
 export type NodeData = {
   label: string;
-  type?: 'lifi' | 'action' | 'transfer';
+  type?: 'action' | 'transfer' | 'ens';
   active?: boolean;
 
   // Uniswap
@@ -27,13 +27,6 @@ export type NodeData = {
   output?: string;
   amount?: string | number;
   amountType?: string;
-
-  // LI.FI
-  fromChain?: string;
-  toChain?: string;
-  token?: string;
-  bridge?: string;
-  payload?: string;
 
   // Arc Payroll
   recipients?: Recipient[];
@@ -66,6 +59,8 @@ interface FlowState {
   isRunning: boolean;
   walletAddress: string | null;
   txHash: string | null;
+  executionStep: number | null;
+  executionError: string | null;
 
   // Modals State
   showSuccessModal: boolean;
@@ -81,6 +76,8 @@ interface FlowState {
   setIsRunning: (isRunning: boolean) => void;
   setWalletAddress: (address: string | null) => void;
   setTxHash: (hash: string | null) => void;
+  setExecutionStep: (step: number | null) => void;
+  setExecutionError: (error: string | null) => void;
   setShowSuccessModal: (show: boolean) => void;
   setShowAIModal: (show: boolean) => void;
   updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
@@ -96,6 +93,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   txHash: null,
   showSuccessModal: false,
   showAIModal: false,
+  executionStep: null,
+  executionError: null,
 
   onNodesChange: (changes) => {
     set({
@@ -120,6 +119,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setTxHash: (txHash) => set({ txHash }),
   setShowSuccessModal: (showSuccessModal) => set({ showSuccessModal }),
   setShowAIModal: (showAIModal) => set({ showAIModal }),
+  setExecutionStep: (executionStep) => set({ executionStep }),
+  setExecutionError: (executionError) => set({ executionError }),
   updateNodeData: (nodeId, data) => {
     set({
       nodes: get().nodes.map((node) => {
@@ -134,6 +135,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   resetFlow: () => set({ nodes: [], edges: [] }),
 }));
 
-export const usePriceStore = create((set) => ({
+export const usePriceStore = create(() => ({
   currentPrice: 0,
 }));
