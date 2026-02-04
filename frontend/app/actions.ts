@@ -1,7 +1,9 @@
 'use server';
 
 import { GoogleGenAI } from "@google/genai";
-// eg. Pay 10 USDC February Salary to vitalik.eth and hayden.eth on Arc using my Sepolia ETH.
+import { ethers } from "ethers";
+
+// eg. Pay 1000 USDC February Salary to employee2.niro.eth and employ1.niro.eth on Arc using my Sepolia ETH.
 export async function analyzeIntent(intent: string, currentPrice: number) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -65,7 +67,31 @@ Return ONLY the JSON object. No markdown formatting.
 
     // Clean up markdown if present
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonStr);
+    const flowData = JSON.parse(jsonStr);
+
+    // After parsing, resolve ENS names
+    if (flowData.nodes) {
+      const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/rpc");
+      for (const node of flowData.nodes) {
+        if (node.data.type === 'ens' && node.data.recipients) {
+          for (const recipient of node.data.recipients) {
+            if (recipient.input && recipient.input.endsWith('.eth')) {
+              try {
+                const resolvedAddress = await provider.resolveName(recipient.input);
+                if (resolvedAddress) {
+                  recipient.address = resolvedAddress;
+                }
+              } catch (e) {
+                console.error(`Failed to resolve ENS name: ${recipient.input}`, e);
+                // Keep address empty if resolution fails
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return flowData;
 
   } catch (error) {
     console.error('Gemini API Error:', error);
