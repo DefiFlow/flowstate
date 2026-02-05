@@ -9,10 +9,10 @@ const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 const isEnsName = (name: string) => name.endsWith('.eth');
 
 // 使用懒加载初始化 Provider，避免 SSR 期间因相对路径报错
-let ensProvider: ethers.JsonRpcProvider | null = null;
+let ensProvider: ethers.providers.JsonRpcProvider | null = null;
 const getEnsProvider = () => {
   if (!ensProvider && typeof window !== 'undefined') {
-    ensProvider = new ethers.JsonRpcProvider(window.location.origin + "/api/rpc");
+    ensProvider = new ethers.providers.JsonRpcProvider(window.location.origin + "/api/rpc");
   }
   return ensProvider;
 };
@@ -224,7 +224,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
       ) : data.type === 'action' ? (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Input</label>
+            <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Input (mETH)</label>
             <input
               type="text"
               className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
@@ -234,7 +234,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Output</label>
+            <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Output (mUSDC)</label>
             <input
               type="text"
               className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"

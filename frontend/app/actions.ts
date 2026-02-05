@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { ethers } from "ethers";
 
 // eg. Pay 1000 USDC February Salary to employee2.niro.eth and employ1.niro.eth on Arc using my Sepolia ETH.
-export async function analyzeIntent(intent: string, currentPrice: number) {
+export async function analyzeIntent(intent: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("GEMINI_API_KEY is missing");
@@ -16,14 +16,12 @@ You are a DeFi automation assistant.
 The user wants to execute a workflow involving a Swap, multiple ENS resolutions, and a final Payroll distribution.
 
 Context:
-- Current ETH Price: ${currentPrice} USDC
 - User Intent: "${intent}"
 
 Task:
 1.  Parse the intent to identify a list of recipients (ENS names or addresses), their individual USDC amounts, and a memo/description.
 2.  Calculate the total USDC required.
-3.  Calculate the required ETH input for the swap using the formula: \`(Total USDC / Current ETH Price) * 1.05\`. The 1.05 is a slippage buffer.
-4.  Generate a JSON object for a React Flow state with the following structure:
+3.  Generate a JSON object for a React Flow state with the following structure:
     - A single "Uniswap" swap node at the top.
     - Below the swap node, create a separate "ENS Resolver" -> "Arc Payroll" node pair for EACH recipient.
     - The "Uniswap" node should connect to every "ENS Resolver" node.
@@ -33,7 +31,8 @@ JSON Structure Details:
 
 - **One Swap Node:**
   - \`id\`: "1", \`type\`: "action", \`position\`: \`{ "x": 250, "y": 0 }\`
-  - \`data\`: \`{ "label": "Uniswap", "type": "action", "input": "...", "output": "..." }\`
+  - \`data\`: \`{ "label": "Uniswap", "type": "action", "input": "...", "output": "..." }\` 
+    - The 'input' should be the total USDC amount calculated in step 2. The 'output' should be an empty string.
 
 - **For EACH recipient \`i\`:**
   - **ENS Node:**
@@ -71,7 +70,7 @@ Return ONLY the JSON object. No markdown formatting.
 
     // After parsing, resolve ENS names
     if (flowData.nodes) {
-      const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/rpc");
+      const provider = new ethers.providers.JsonRpcProvider("http://localhost:3000/api/rpc");
       for (const node of flowData.nodes) {
         if (node.data.type === 'ens' && node.data.recipients) {
           for (const recipient of node.data.recipients) {
