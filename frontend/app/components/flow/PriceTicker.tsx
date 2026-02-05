@@ -26,12 +26,19 @@ export const PriceTicker = () => {
   }, [setCurrentPrice]);
 
   return (
-    <div className="flex items-center gap-3 bg-stone-900 text-white px-4 py-1.5 rounded-full border border-stone-700 shadow-inner">
-      <div className="flex items-center gap-2 border-r border-stone-700 pr-3">
-        <Activity className={`w-4 h-4 ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
+    <div className="flex items-center gap-3 bg-stone-900 text-white px-4 py-1.5 rounded-full shadow-inner">
+      <div className="flex items-center gap-2 pr-3">
+        <Activity
+          className="w-4 h-4"
+          style={{ color: trend === 'up' ? '#22c55e' : '#FF164D' }}
+        />
         <span className="font-bold text-xs text-stone-400">ETH/USDC</span>
       </div>
-      <span className={`font-mono text-lg font-bold ${trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
+      <div className="w-[1px] h-4 bg-stone-700" />
+      <span
+        className="font-mono text-lg font-bold"
+        style={{ color: trend === 'up' ? '#4ade80' : '#FF164D' }}
+      >
         ${priceStr}
       </span>
     </div>

@@ -69,8 +69,8 @@ const MAX_SQRT_RATIO = BigInt("1461446703485210103287273052203988822378723970342
  * Helper function: Uniswap requires token addresses to be sorted lexicographically.
  */
 const sortTokens = (tokenA: string, tokenB: string): [string, string] => {
-  return tokenA.toLowerCase() < tokenB.toLowerCase() 
-    ? [tokenA, tokenB] 
+  return tokenA.toLowerCase() < tokenB.toLowerCase()
+    ? [tokenA, tokenB]
     : [tokenB, tokenA];
 };
 
@@ -157,7 +157,7 @@ export const Header = () => {
     setShowSuccessModal(true);
     setExecutionStep(0);
 
-    try {      
+    try {
       // ======================================================
       // PHASE 1: Sepolia (Uniswap v4 God-Mode Swap)
       // ======================================================
@@ -182,7 +182,7 @@ export const Header = () => {
       console.log(`Phase 1: Swapping ${amountIn} M-ETH for USDC...`);
 
       const [currency0, currency1] = sortTokens(tokenInAddress, tokenOutAddress);
-      
+
       const poolKey: PoolKey = {
         currency0: currency0,
         currency1: currency1,
@@ -196,14 +196,14 @@ export const Header = () => {
       // [修改点 1] 添加负号！
       // Uniswap 中：负数 = Exact Input (精确卖出输入金额)
       // 正数 = Exact Output (精确买入输出金额)
-      const amountWei = -ethers.parseUnits(amountIn, tokenInDecimals); 
+      const amountWei = -ethers.parseUnits(amountIn, tokenInDecimals);
 
       const tokenContract = new Contract(tokenInAddress, ERC20_ABI, signer);
       const ownerAddress = await signer.getAddress();
-      
+
       console.log(`Checking allowance for ${tokenInAddress}...`);
       // 注意：检查 allowance 时要用绝对值 (abs)
-      const amountAbs = ethers.parseUnits(amountIn, tokenInDecimals); 
+      const amountAbs = ethers.parseUnits(amountIn, tokenInDecimals);
       const allowance = await tokenContract.allowance(ownerAddress, ROUTER_ADDRESS);
 
       if (allowance < amountAbs) {
@@ -225,7 +225,7 @@ export const Header = () => {
 
       const tx1: TransactionResponse = await routerContract.swap(poolKey, swapParams, "0x");
       console.log(`Swap Transaction sent: ${tx1.hash}`);
-      await tx1.wait(); 
+      await tx1.wait();
       console.log("Swap Confirmed!");
 
       await new Promise(r => setTimeout(r, 2000));
@@ -234,21 +234,21 @@ export const Header = () => {
       // PHASE 2: Arc Testnet (Real Execution - Payroll Settlement)
       // ======================================================
       setExecutionStep(2);
-      
+
       await switchNetwork(
-        CHAINS.ARC.id, 
-        CHAINS.ARC.name, 
-        CHAINS.ARC.rpc, 
+        CHAINS.ARC.id,
+        CHAINS.ARC.name,
+        CHAINS.ARC.rpc,
         CHAINS.ARC.nativeCurrency
       );
-      
+
       const arcProvider = new ethers.BrowserProvider((window as any).ethereum);
       const arcSigner = await arcProvider.getSigner();
-      
+
       if (!ARC_PAYROLL_ADDRESS || !ARC_USDC_ADDRESS) {
         throw new Error("Contract addresses not found in .env.local");
       }
-      
+
       const payrollContract = new ethers.Contract(ARC_PAYROLL_ADDRESS, ARC_PAYROLL_ABI, arcSigner);
 
       const recipientsData = ensNodes.flatMap(node => (node.data.recipients as any[]) || []);
@@ -270,15 +270,15 @@ export const Header = () => {
       }
 
       console.log("🚀 Executing Payroll on Arc:", { targetAddresses, targetAmounts, memo });
-      
+
       // [修改点 2] 自动充值逻辑
       // 解决 "Insufficient contract balance" 问题
       // 模拟 Bridge 行为：先把钱转给合约，然后再由合约分发
       const totalAmount = targetAmounts.reduce((a, b) => a + b, BigInt(0));
-      
+
       console.log(`Simulating Bridge: Transferring ${ethers.formatUnits(totalAmount, 18)} USDC to Payroll Contract...`);
       const usdcContract = new ethers.Contract(ARC_USDC_ADDRESS, ERC20_ABI, arcSigner);
-      
+
       // 这一步是将你钱包里的 mUSDC -> 转给 ArcPayroll 合约
       const txTransfer = await usdcContract.transfer(ARC_PAYROLL_ADDRESS, totalAmount);
       await txTransfer.wait();
@@ -321,11 +321,15 @@ export const Header = () => {
         <button
           onClick={connectWallet}
           className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all text-sm border
-              ${walletAddress 
-                ? 'bg-[#1A1D24] text-gray-300 border-[#2A2B32] hover:bg-[#252830]' 
-                : 'bg-white text-black border-transparent hover:bg-gray-200'}`}
+              ${walletAddress
+              ? 'bg-[#1A1D24] text-gray-300 border-[#2A2B32] hover:bg-[#252830]'
+              : 'bg-transparent text-white border-white/20 hover:bg-white/5'}`}
         >
-          <Wallet className="w-4 h-4" />
+          {walletAddress ? (
+            <Wallet className="w-4 h-4" />
+          ) : (
+            <img src="/wallet.png" alt="Wallet" className="w-4 h-4 object-contain" />
+          )}
           {walletAddress
             ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
             : 'Connect Wallet'}

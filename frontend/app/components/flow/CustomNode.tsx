@@ -78,7 +78,7 @@ const RecipientRow = ({
         <input
           type="text"
           className={`nodrag w-full border rounded-lg pl-2 pr-6 py-1.5 text-[10px] text-white bg-white/5 focus:outline-none font-mono transition-all
-            ${isValid ? 'border-green-500/30 focus:border-green-500' : 'border-stone-700 focus:border-blue-500'}
+            ${isValid ? 'border-green-500/30 focus:border-green-500' : 'border-white/10 focus:border-blue-500'}
           `}
           placeholder="ENS or 0x..."
           value={localInput}
@@ -92,7 +92,7 @@ const RecipientRow = ({
       </div>
       <input
         type="number"
-        className="nodrag w-14 border border-stone-700 rounded-lg px-1.5 py-1.5 text-[10px] text-white bg-white/5 focus:outline-none focus:border-blue-500 font-mono text-center"
+        className="nodrag w-14 border border-white/10 rounded-lg px-1.5 py-1.5 text-[10px] text-white bg-white/5 focus:outline-none focus:border-blue-500 font-mono text-center"
         placeholder="Amt"
         value={recipient.amount || ''}
         onChange={(e) => onChange(index, 'amount', e.target.value)}
@@ -144,7 +144,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getTypeStyles = () => {
     switch (data.type) {
-      case 'ens': return 'border-[#FFB800]/50 hover:border-[#FFB800] shadow-yellow-500/10';
+      case 'ens': return 'border-[#52BDFF]/50 hover:border-[#52BDFF] shadow-blue-500/10';
       case 'action': return 'border-[#FF5D73]/50 hover:border-[#FF5D73] shadow-pink-500/10';
       case 'transfer': return 'border-[#41E43E]/50 hover:border-[#41E43E] shadow-green-500/10';
       default: return 'border-stone-700 hover:border-stone-500';
@@ -153,7 +153,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getBackgroundStyle = () => {
     switch (data.type) {
-      case 'ens': return { background: 'linear-gradient(90deg, #725A2B 0%, #1B1D1F 100%)' };
+      case 'ens': return { background: 'linear-gradient(90deg, #2B4572 0%, #1B1D1F 100%)' };
       case 'action': return { background: 'linear-gradient(90deg, #69314D 0%, #1B1D1F 100%)' };
       case 'transfer': return { background: 'linear-gradient(90deg, #306357 0%, #1B1D1F 100%)' };
       default: return { background: '#1A1D24' };
@@ -162,16 +162,16 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
 
   const getIcon = () => {
     switch (data.type) {
-      case 'ens': return <Search className="w-4 h-4 text-[#FFB800]" />;
-      case 'action': return <Repeat className="w-4 h-4 text-[#FF5D73]" />;
-      case 'transfer': return <Wallet className="w-4 h-4 text-[#41E43E]" />;
+      case 'ens': return <img src="/ens.png" alt="ENS" className="w-5 h-5 object-contain" />;
+      case 'action': return <img src="/Uniswap.png" alt="Uniswap" className="w-5 h-5 object-contain" />;
+      case 'transfer': return <img src="/Arc.png" alt="Arc" className="w-5 h-5 object-contain" />;
       default: return null;
     }
   };
 
   return (
     <div
-      className={`px-4 py-4 shadow-2xl rounded-2xl border min-w-[260px] transition-all duration-300 backdrop-blur-sm
+      className={`px-4 py-4 shadow-2xl rounded-2xl border w-[360px] transition-all duration-300 backdrop-blur-sm
         ${getTypeStyles()}
         ${data.active ? 'ring-2 ring-blue-500/40 border-blue-400' : ''}
       `}
@@ -182,13 +182,13 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
         <Handle
           type="target"
           position={Position.Top}
-          className="!bg-[#2A2B32] !border-2 !border-stone-600 !w-3 !h-3 !-top-1.5 hover:!scale-125 transition-transform"
+          className="!bg-[#0090FF] !border-2 !border-[#FFFFFF] !w-3.5 !h-3.5 !-top-1.5 hover:!scale-125 transition-transform"
         />
       )}
 
       {/* Title Bar */}
       <div className="flex items-center gap-3 mb-4 border-b border-stone-800/50 pb-3">
-        <div className="p-1.5 rounded-lg bg-stone-800/50">
+        <div className="rounded-lg overflow-hidden flex items-center justify-center">
           {getIcon()}
         </div>
         <span className="font-bold text-sm text-white tracking-tight">
@@ -204,7 +204,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             <div className="flex items-center justify-between px-1">
               <label className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">ENS to Resolve</label>
             </div>
-            
+
             <div className="flex flex-col gap-2">
               {recipients.map((r: any, i: number) => (
                 <RecipientRow
@@ -223,7 +223,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Input</label>
             <input
               type="text"
-              className="nodrag w-full border border-stone-700 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
+              className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
               placeholder="10 ETH (Sepolia)"
               value={data.input || ''}
               onChange={(e) => handleChange('input', e.target.value)}
@@ -233,7 +233,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Output</label>
             <input
               type="text"
-              className="nodrag w-full border border-stone-700 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
+              className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
               placeholder="~28,000 USDC"
               value={data.output || ''}
               readOnly
@@ -244,7 +244,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
         /* Transfer Node UI */
         <div className="flex flex-col gap-3">
           {parentEnsNodeRecipient ? (
-            <div className="p-3 bg-white/5 rounded-lg border border-stone-700/50 space-y-2">
+            <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-stone-400">Recipient</span>
                 <span className="font-mono text-xs text-white break-all">{parentEnsNodeRecipient.input || 'N/A'}</span>
@@ -254,14 +254,14 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
                 <span className="font-mono text-xs text-white">{parentEnsNodeRecipient.amount} USDC</span>
               </div>
               {parentEnsNodeRecipient.address && (
-                <div className="flex justify-between items-start pt-2 mt-1 border-t border-stone-700/50">
+                <div className="flex justify-between items-start pt-2 mt-1 border-t border-white/10">
                   <span className="text-[10px] text-stone-400 mt-0.5">Resolved Address</span>
                   <span className="font-mono text-xs text-green-400 text-right break-all">{parentEnsNodeRecipient.address}</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="p-3 bg-white/5 rounded-lg border border-stone-700/50">
+            <div className="p-3 bg-white/5 rounded-lg border border-white/10">
               <p className="text-[10px] text-stone-400 leading-relaxed">
                 <span className="text-yellow-400 font-bold">Unlinked:</span> Connect to an ENS Resolver node.
               </p>
@@ -272,7 +272,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             <label className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Memo</label>
             <input
               type="text"
-              className="nodrag w-full border border-stone-700 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-green-500 font-mono"
+              className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-green-500 font-mono"
               placeholder="e.g., Salary Distribution"
               value={data.memo || ''}
               onChange={(e) => handleChange('memo', e.target.value)}
@@ -285,7 +285,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-[#2A2B32] !border-2 !border-stone-600 !w-3 !h-3 !-bottom-1.5 hover:!scale-125 transition-transform"
+        className="!bg-[#0090FF] !border-2 !border-[#FFFFFF] !w-3.5 !h-3.5 !-bottom-1.5 hover:!scale-125 transition-transform"
       />
     </div>
   );

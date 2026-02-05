@@ -121,9 +121,9 @@ const FlowArea = () => {
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             fitView
-            attributionPosition="bottom-right"
+            proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{
-              style: { stroke: 'url(#edge-gradient)', strokeWidth: 3 },
+              style: { stroke: 'url(#edge-gradient)', strokeWidth: 5 },
               animated: true,
             }}
           >
@@ -150,14 +150,16 @@ const FlowArea = () => {
             <Background color="#1A1D24" gap={24} size={1} />
             <Controls className="bg-[#1A1D24] border border-[#2A2B32] shadow-2xl rounded-xl overflow-hidden !m-4" />
             <MiniMap
-              className="!rounded-xl !shadow-2xl !m-4 !bg-[#1A1D24] !border-0"
-              maskColor="rgba(0, 0, 0, 0)"
+              className="!rounded-2xl !shadow-2xl !m-4 !bg-[#08090A] !border !border-white/10"
+              maskColor="rgba(0, 0, 0, 0.4)"
               nodeColor={(n) => {
-                if (n.data.type === 'ens') return '#FFB800'; // ENS Yellow/Orange
-                if (n.data.type === 'action') return '#FF5D73';
-                if (n.data.type === 'transfer') return '#41E43E';
-                return '#6b7280';
+                if (n.data.type === 'ens') return '#52BDFF80';
+                if (n.data.type === 'action') return '#FF164D80';
+                if (n.data.type === 'transfer') return '#41E43E80';
+                return '#FFFFFF33';
               }}
+              nodeStrokeWidth={0}
+              nodeBorderRadius={16}
             />
           </ReactFlow>
         </div>
