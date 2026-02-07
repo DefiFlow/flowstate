@@ -4,42 +4,45 @@ import { GoogleGenAI } from "@google/genai";
 import { ethers } from "ethers";
 
 // eg. Pay 1000 USDC February Salary to employee2.niro.eth and employ1.niro.eth on Arc using my Sepolia ETH.
-export async function analyzeIntent(intent: string) {
+export async function analyzeIntent(intent: string, currentPrice: number) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("GEMINI_API_KEY is missing");
     return { error: "API Key missing" };
   }
 
-  const prompt = `
-You are a DeFi automation assistant.
-The user wants to execute a workflow involving a Swap, multiple ENS resolutions, and a final Payroll distribution.
+  const prompt = `You are a DeFi automation assistant. Your goal is to understand a user's intent and translate it into a structured JSON workflow for a React Flow diagram.
 
 Context:
 - User Intent: "${intent}"
+- Current ETH Price: ${currentPrice} USD per ETH. Use this for any calculations involving ETH to USDC swaps.
 
 Task:
-1.  Parse the intent to identify a list of recipients (ENS names or addresses), their individual USDC amounts, and a memo/description.
-2.  Calculate the total USDC required.
-3.  Generate a JSON object for a React Flow state with the following structure:
-    - A single "Uniswap" swap node at the top.
-    - Below the swap node, create a separate "ENS Resolver" -> "Arc Payroll" node pair for EACH recipient.
-    - The "Uniswap" node should connect to every "ENS Resolver" node.
-    - Each "ENS Resolver" node should connect to its corresponding "Arc Payroll" node.
+1.  **Think Step-by-Step**: First, formulate a brief "thought" process explaining the steps you will take. For example: "I will initiate a swap for the specified assets, then resolve the ENS names, and finally set up the payroll distribution."
+2.  **Parse Intent**: Analyze the user's intent to extract key parameters like recipients, amounts, and a memo.
+3.  **Calculate Totals**: Calculate the total USDC amount required.
+4.  **Generate JSON**: Construct a single JSON object that includes your "thought" process and the necessary nodes and edges for the React Flow diagram.
+
+JSON Structure Specification:
+
+- **Top-level Keys**: The root of the JSON object must have three keys: \`thought\`, \`nodes\`, and \`edges\`.
+  - \`thought\`: A string containing your step-by-step plan from Task 1.
+  - \`nodes\`: An array of node objects.
+  - \`edges\`: An array of edge objects.
 
 JSON Structure Details:
 
 - **One Swap Node:**
   - \`id\`: "1", \`type\`: "action", \`position\`: \`{ "x": 250, "y": 0 }\`
   - \`data\`: \`{ "label": "Uniswap", "type": "action", "input": "...", "output": "..." }\` 
-    - The 'input' should be the total USDC amount calculated in step 2. The 'output' should be an empty string.
+    - The 'input' should be the total USDC amount calculated. The 'output' should be an empty string.
 
 - **For EACH recipient \`i\`:**
   - **ENS Node:**
     - \`id\`: \`"2-${'${i+1}'}"\`, \`type\`: "ens", \`position\`: \`{ "x": (i * 300), "y": 250 }\`
     - \`data\`: \`{ "label": "ENS Resolver", "type": "ens", "recipients": [{ "input": "...", "amount": ..., "address": "" }] }\` (recipients array has only ONE element)
   - **Payroll Node:**
-    - \`id\`: \`"3-${'${i+1}'}"\`, \`type\`: "transfer", \`position\`: \`{ "x": (i * 300) + 1, "y": 550 }\`
+    - \`id\`: \`"3-${'${i+1}'}"\`, \`type\`: "transfer", \`position\`: \`{ "x": (i * 300), "y": 550 }\`
     - \`data\`: \`{ "label": "Arc Payroll", "type": "transfer", "token": "USDC", "memo": "..." }\`
 
 - **Edges:**
@@ -47,7 +50,7 @@ JSON Structure Details:
   - One edge from each \`"2-${'${i+1}'}"\` to its corresponding \`"3-${'${i+1}'}"\`.
 
 Example for an intent with 2 recipients:
-The final JSON should contain 5 nodes (1 swap, 2 ens, 2 payroll) and 4 edges.
+The final JSON should contain a 'thought' string, 5 nodes (1 swap, 2 ens, 2 payroll), and 4 edges.
 
 Return ONLY the JSON object. No markdown formatting.
   `;
@@ -67,28 +70,6 @@ Return ONLY the JSON object. No markdown formatting.
     // Clean up markdown if present
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const flowData = JSON.parse(jsonStr);
-
-    // After parsing, resolve ENS names
-    if (flowData.nodes) {
-      const provider = new ethers.providers.JsonRpcProvider("http://localhost:3000/api/rpc");
-      for (const node of flowData.nodes) {
-        if (node.data.type === 'ens' && node.data.recipients) {
-          for (const recipient of node.data.recipients) {
-            if (recipient.input && recipient.input.endsWith('.eth')) {
-              try {
-                const resolvedAddress = await provider.resolveName(recipient.input);
-                if (resolvedAddress) {
-                  recipient.address = resolvedAddress;
-                }
-              } catch (e) {
-                console.error(`Failed to resolve ENS name: ${recipient.input}`, e);
-                // Keep address empty if resolution fails
-              }
-            }
-          }
-        }
-      }
-    }
 
     return flowData;
 

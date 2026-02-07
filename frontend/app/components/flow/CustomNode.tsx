@@ -30,20 +30,7 @@ const RecipientRow = ({
   const [isResolving, setIsResolving] = useState(false);
   const [isValid, setIsValid] = useState(isValidAddress(recipient.address || ''));
 
-  // Only sync if the recipient.input changes from outside (e.g. AI generation)
-  useEffect(() => {
-    if (recipient.input !== undefined && recipient.input !== localInput) {
-      setLocalInput(recipient.input);
-      setIsValid(isValidAddress(recipient.address || ''));
-    }
-  }, [recipient.input]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLocalInput(val);
-    onChange(index, 'input', val);
-
-    // Debounced or immediate resolution? Let's keep it immediate for now but with proper checks
+  const resolveInput = useCallback((val: string) => {
     if (isEnsName(val)) {
       setIsValid(false);
       setIsResolving(true);
@@ -73,6 +60,27 @@ const RecipientRow = ({
       setIsValid(false);
       setIsResolving(false);
     }
+  }, [index, onChange]);
+
+  // On mount or when input changes from outside (e.g. AI), resolve it.
+  useEffect(() => {
+    const newInputValue = recipient.input || '';
+    if (newInputValue !== localInput) {
+      setLocalInput(newInputValue);
+    }
+    // Resolve if it's an ENS name and doesn't have a valid address yet.
+    if (newInputValue && (!recipient.address || !isValidAddress(recipient.address))) {
+      resolveInput(newInputValue);
+    } else {
+      setIsValid(isValidAddress(recipient.address || ''));
+    }
+  }, [recipient.input, recipient.address, resolveInput, localInput]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalInput(val);
+    onChange(index, 'input', val);
+    resolveInput(val);
   };
 
   return (
@@ -237,7 +245,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
             <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Output (mUSDC)</label>
             <input
               type="text"
-              className="nodrag w-full border border-white/10 rounded-lg px-3 py-2 text-xs text-white bg-white/10 focus:outline-none focus:border-pink-500 font-mono"
+              className="nodrag w-full border border-black/10 rounded-lg px-3 py-2 text-xs text-white bg-black/10 focus:outline-none font-mono"
               placeholder="~28,000 USDC"
               value={data.output || ''}
               readOnly
