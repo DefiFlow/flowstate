@@ -27,7 +27,7 @@ const isValidAddress = (addr: string): addr is `0x${string}` => {
 };
 
 // ==========================================
-// 5. 主逻辑区域 (FlowArea)
+// 5. Main Logic Area (FlowArea)
 // ==========================================
 const FlowArea = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -49,7 +49,7 @@ const FlowArea = () => {
     setTxHash,
   } = useFlowStore();
 
-  // --- 拖拽放置逻辑 ---
+  // --- Drag and Drop Logic ---
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -95,7 +95,7 @@ const FlowArea = () => {
     <div className="w-full h-screen flex flex-col bg-stone-50 overflow-hidden font-sans">
       <Header />
 
-      {/* 主体 */}
+      {/* Main Container */}
       <div className="flex-1 flex h-full" ref={reactFlowWrapper}>
         <Sidebar />
 
@@ -172,7 +172,7 @@ const FlowArea = () => {
 };
 
 // ==========================================
-// 6. 导出根组件
+// 6. Export Root Component
 // ==========================================
 export default function App() {
   return (

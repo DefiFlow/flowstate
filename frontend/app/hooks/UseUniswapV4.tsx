@@ -13,7 +13,7 @@ const SEPOLIA_RPC_URL = 'https://ethereum-sepolia.publicnode.com';
 
 // ✅ Fix 2: Explicitly define the Network object to skip auto-detection
 const sepoliaProvider = new ethers.providers.JsonRpcProvider(
-  SEPOLIA_RPC_URL, 
+  SEPOLIA_RPC_URL,
   {
     chainId: 11155111,
     name: 'sepolia'
@@ -69,7 +69,7 @@ export const useUniswapV4 = (signer: ethers.Signer | null) => {
   const quoteReverse = useCallback(async (amountOutUSDC: string): Promise<string | null> => {
     // Prioritize using the signer; if no wallet is connected, use the read-only sepoliaProvider.
     const connection = signer || sepoliaProvider;
-    
+
     if (!amountOutUSDC || parseFloat(amountOutUSDC) === 0) return null;
 
     try {
@@ -77,7 +77,7 @@ export const useUniswapV4 = (signer: ethers.Signer | null) => {
       // Note: We are reverse-calculating "how much mETH is needed to get mUSDC".
       // The logic here remains the same: TokenIn is mETH, TokenOut is mUSDC.
       const zeroForOne = M_ETH_ADDRESS.toLowerCase() === currency0.toLowerCase();
-      
+
       const poolKey = {
         currency0: currency0,
         currency1: currency1,
@@ -91,14 +91,14 @@ export const useUniswapV4 = (signer: ethers.Signer | null) => {
       const quoteParams = {
         poolKey: poolKey,
         zeroForOne: zeroForOne,
-        exactAmount: amountParam, 
+        exactAmount: amountParam,
         hookData: "0x"
       };
 
       const quoterContract = new Contract(QUOTER_ADDRESS, QUOTER_ABI, connection);
-      
+
       console.log("🔍 Quoting reverse (mUSDC->mETH)...");
-      
+
       // Use callStatic
       const result = await quoterContract.callStatic.quoteExactOutputSingle(
         quoteParams,
@@ -109,26 +109,26 @@ export const useUniswapV4 = (signer: ethers.Signer | null) => {
       const amountIn = result.amountIn || result[0];
       const formattedAmountIn = ethers.utils.formatUnits(amountIn, 18);
       console.log(`✅ Quote Reverse Success: Need ${formattedAmountIn} mETH`);
-      
+
       return formattedAmountIn;
 
     } catch (error: any) {
       console.warn("⚠️ Quote Reverse Failed:", error);
-      
+
       // If the RPC still fails, this is a fallback logic.
       // This will only be reached if both the signer and the publicProvider fail.
-      const baseRate = 2000; 
+      const baseRate = 2000;
       const estimatedIn = parseFloat(amountOutUSDC) / baseRate;
       return estimatedIn.toFixed(5);
     }
   }, [signer]);
 
   // ... quote and swap functions remain unchanged ...
-  
+
   // For completeness, I've omitted the code for quote and swap here.
   // You just need to keep your original quote and swap functions; they don't need changes.
-  const quote = useCallback(async (amountIn: string) => { /* ...原代码... */ return null; }, [signer]);
-  const swap = useCallback(async (amountIn: string) => { /* ...原代码... */ return null; }, [signer]);
+  const quote = useCallback(async (amountIn: string) => { /* ...original code... */ return null; }, [signer]);
+  const swap = useCallback(async (amountIn: string) => { /* ...original code... */ return null; }, [signer]);
 
   return { swap, quote, quoteReverse, isLoading, txHash };
 };

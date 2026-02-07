@@ -5,17 +5,17 @@ import { ethers, Contract } from 'ethers';
 import { ARC_PAYROLL_ABI } from '../../utils/abis';
 
 // ======================================================
-// 配置常量 (对应你 testSwap.js 中的成功配置)
+// Configuration constants (corresponding to successful settings in your testSwap.js)
 // ======================================================
 
-// 1. Uniswap v4 PoolSwapTest 合约地址 (Sepolia)
+// 1. Uniswap v4 PoolSwapTest contract address (Sepolia)
 const POOL_SWAP_TEST_ADDRESS = "0x9b6b46e2c869aa39918db7f52f5557fe577b6eee";
 
-// 2. 你的代币地址 (Sepolia)
+// 2. Your token addresses (Sepolia)
 const SEP_METH_ADDRESS = "0x5f403fdc672e1D6902eA5C4CB1329cB5698d0c33";
 const SEP_USDC_ADDRESS = "0x8B5c068AF3f6D2eeeE4c0c7575d4D8e52504ac01";
 
-// 3. Arc 链配置 (保持不变)
+// 3. Arc chain configuration (remains unchanged)
 const ARC_PAYROLL_ADDRESS = process.env.NEXT_PUBLIC_ARC_PAYROLL_ADDRESS;
 const ARC_USDC_ADDRESS = process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS;
 
@@ -61,7 +61,7 @@ interface TestSettings {
   settleUsingBurn: boolean;
 }
 
-// ✅ 更新后的 ABI: 包含 testSettings 和 hookData
+// ✅ Updated ABI: includes testSettings and hookData
 const POOL_SWAP_TEST_ABI = [
   "function swap((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks) key, (bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96) params, (bool takeClaims, bool settleUsingBurn) testSettings, bytes hookData) external payable returns (int256 delta)"
 ];
@@ -182,7 +182,7 @@ export const Header = () => {
       const outputVal = actionNode.data.output || "~0.001"; // Default to safe value
       const cleanInput = outputVal.toString().replace(/[^0-9.]/g, '');
       const amountIn = cleanInput || "0.001";
-      
+
       // Tokens
       const tokenInAddress = SEP_METH_ADDRESS;
       const tokenOutAddress = SEP_USDC_ADDRESS;
@@ -206,7 +206,7 @@ export const Header = () => {
       // 3. Check Balance & Allowance
       const tokenContract = new Contract(tokenInAddress, ERC20_ABI, signer);
       const amountAbs = ethers.utils.parseUnits(amountIn, tokenInDecimals);
-      
+
       const balance = await tokenContract.balanceOf(userAddress);
       if (balance.lt(amountAbs)) {
         throw new Error(`Insufficient mETH Balance. You have ${ethers.utils.formatUnits(balance, 18)} but need ${amountIn}`);
@@ -222,11 +222,11 @@ export const Header = () => {
 
       // 4. Construct Swap Params
       // Negative amount = Exact Input (I want to pay exactly X)
-      const amountWei = amountAbs.mul(-1); 
-      
+      const amountWei = amountAbs.mul(-1);
+
       const swapParams: SwapParams = {
         zeroForOne: zeroForOne,
-        amountSpecified: amountWei, 
+        amountSpecified: amountWei,
         sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_RATIO : MAX_SQRT_RATIO
       };
 
@@ -237,14 +237,14 @@ export const Header = () => {
 
       // 5. Execute Swap
       const swapTestContract = new Contract(POOL_SWAP_TEST_ADDRESS, POOL_SWAP_TEST_ABI, signer);
-      
+
       console.log("Sending Swap Transaction...", { poolKey, swapParams });
 
-      // 🔥 使用与脚本一致的调用方式：传 "0x" 给 hookData，并手动设置 Gas Limit
+      // 🔥 Using the same calling method as the script: passing "0x" to hookData and manually setting Gas Limit
       const tx1 = await swapTestContract.swap(
-        poolKey, 
-        swapParams, 
-        testSettings, 
+        poolKey,
+        swapParams,
+        testSettings,
         "0x", // hookData
         { gasLimit: 5000000 } // Safety Gas Limit
       );
@@ -299,7 +299,7 @@ export const Header = () => {
       // 1. Simulate Bridge: User -> Payroll Contract (Fund the contract first)
       console.log(`Transferring ${ethers.utils.formatUnits(totalAmount, 18)} USDC to Payroll Contract...`);
       const usdcContract = new ethers.Contract(ARC_USDC_ADDRESS, ERC20_ABI, arcSigner);
-      
+
       // Check allowance for Arc USDC if needed, or just transfer
       // For this demo flow, we act as the 'bridge' by sending tokens to the contract directly
       // But typically we should Approve -> Contract.Deposit. 
@@ -331,7 +331,7 @@ export const Header = () => {
       let msg = error.message || error.toString();
       if (msg.includes("user rejected")) msg = "User rejected transaction";
       if (msg.includes("insufficient funds")) msg = "Insufficient gas or tokens";
-      
+
       alert(`Execution Failed: ${msg}`);
       setExecutionError(msg);
       setIsRunning(false);

@@ -37,7 +37,7 @@ export const Sidebar = () => {
       {/* Divider */}
       <div className="h-[1px] w-full" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
 
-      {/* Action 组件 */}
+      {/* Action Component */}
       <div
         className="p-3 rounded-xl cursor-grab flex items-center gap-3 transition-all select-none active:cursor-grabbing group shadow-sm border border-white/5 hover:border-[#FF5D73]/50 hover:scale-[1.02]"
         style={{
