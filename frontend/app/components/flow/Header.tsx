@@ -341,7 +341,7 @@ export const Header = () => {
   return (
     <div className="h-16 border-b border-[#2A2B32] bg-[#121314] flex items-center justify-between px-6 z-30 shadow-sm relative">
       <div className="flex items-center gap-6">
-        <div className="font-black text-xl flex items-center gap-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic">
+        <div className="font-black text-xl flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic pr-1">
           FlowState
         </div>
       </div>

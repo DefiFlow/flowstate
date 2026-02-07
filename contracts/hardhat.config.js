@@ -1,5 +1,5 @@
 require("@nomiclabs/hardhat-ethers");
-require("@nomiclabs/hardhat-etherscan"); // 验证插件
+require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
@@ -17,7 +17,7 @@ module.exports = {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
-    // Arc Testnet 配置
+    // Arc Testnet
     arcTestnet: {
       url: `https://rpc.testnet.arc.network`,
       chainId: 5042002,

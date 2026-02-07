@@ -105,8 +105,8 @@ async function main() {
 
   // --- 7. Add Massive Liquidity ---
   // [Ethers v5] Use ethers.utils.parseUnits
-  const amount0Desired = ethers.utils.parseUnits("10000", 18); // 1万 ETH
-  const amount1Desired = ethers.utils.parseUnits("20000000", 18); // 2000万 USDC
+  const amount0Desired = ethers.utils.parseUnits("10000", 18); // 10k ETH
+  const amount1Desired = ethers.utils.parseUnits("20000000", 18); // 20m USDC
 
   const position = Position.fromAmounts({
     pool: pool,
@@ -126,7 +126,7 @@ async function main() {
   const mintOptions = {
     recipient: signer.address,
     deadline: Math.floor(Date.now() / 1000) + 1800,
-    slippageTolerance: new Percent(50, 100), // 50% 滑点容忍度
+    slippageTolerance: new Percent(50, 100), // 50%
   };
 
   const { calldata, value } = V4PositionManager.addCallParameters(position, mintOptions);

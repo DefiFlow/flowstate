@@ -8,15 +8,15 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# 1. 拷贝静态资源 (Public) - 保持不变
+# 1. Copy static assets (Public) - unchanged
 COPY public ./public
 
-# 2. 拷贝 Standalone 产物 (关键修改！！！)
-# ❌ 旧写法: COPY .next/standalone ./
-# ✅ 新写法: 多加一层 /frontend，把里面的 server.js 拷到根目录
+# 2. Copy Standalone output (Key modification!!!)
+# ❌ Old way: COPY .next/standalone ./
+# ✅ New way: Copy from the nested 'frontend' directory, placing server.js in the root.
 COPY .next/standalone/frontend ./
 
-# 3. 拷贝静态资源 (.next/static) - 保持不变
+# 3. Copy static assets (.next/static) - unchanged
 COPY .next/static ./.next/static
 
 USER nextjs
