@@ -167,7 +167,7 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
   const getIcon = () => {
     switch (data.type) {
       case 'ens': return <img src="/ens.png" alt="ENS" className="w-5 h-5 object-contain" />;
-      case 'action': return <img src="/Uniswap.png" alt="Uniswap" className="w-5 h-5 object-contain" />;
+      case 'action': return <img src="/uniswapV1.png" alt="Uniswap" className="w-5 h-5 object-contain" />;
       case 'transfer': return <img src="/Arc.png" alt="Arc" className="w-5 h-5 object-contain" />;
       default: return null;
     }

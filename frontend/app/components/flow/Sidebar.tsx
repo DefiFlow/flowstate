@@ -48,7 +48,7 @@ export const Sidebar = () => {
         draggable
       >
         <div className="bg-pink-500/0 p-0 rounded-lg overflow-hidden flex items-center justify-center">
-          <img src="/Uniswap.png" alt="Uniswap" className="w-10 h-10 object-contain" />
+          <img src="/uniswapV1.png" alt="Uniswap" className="w-10 h-10 object-contain" />
         </div>
         <div className="flex flex-col">
           <span className="font-bold text-sm text-white transition-colors">Uniswap Action</span>
