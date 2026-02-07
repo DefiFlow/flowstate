@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-console.log(process.env.ALCHEMY_API_KEY);
-
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
