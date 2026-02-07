@@ -266,16 +266,18 @@ export const CustomNode = ({ id, data }: { id: string, data: any }) => {
               onChange={(e) => handleChange('input', e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1 relative">
+          <div className="flex flex-col gap-1">
             <label className="text-[9px] font-bold text-stone-500 uppercase tracking-tighter">Output (mETH)</label>
-            <input
-              type="text"
-              className="nodrag w-full border border-black/20 rounded-lg px-3 py-2 text-xs text-white bg-black/20 focus:outline-none font-mono"
-              placeholder="~1.00 mETH (Sepolia)"
-              value={isQuoting ? 'Fetching quote...' : data.output || ''}
-              readOnly
-            />
-            {isQuoting && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-500 animate-spin" />}
+            <div className="relative">
+              <input
+                type="text"
+                className="nodrag w-full border border-black/20 rounded-lg px-3 py-2 text-xs text-white bg-black/20 focus:outline-none font-mono"
+                placeholder="~1.00 mETH (Sepolia)"
+                value={isQuoting ? 'Fetching quote...' : data.output || ''}
+                readOnly
+              />
+              {isQuoting && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-blue-500 animate-spin" />}
+            </div>
           </div>
         </div>
       ) : (
